@@ -11,8 +11,8 @@ Sistema completo para cadastro e gerenciamento de pessoas e eventos PCD, com env
 
 pcd-eventos/
 │
-├── index.html ← Frontend (interface com upload e semáforo)
-├── server.js ← Backend Node.js (Express + Multer)
-├── package.json ← Configuração do Node.js
-├── /documentos/ ← Criada automaticamente (armazenamento dos uploads)
-└── /node_modules/ ← Criada após executar npm install
+├── index.html        ← Tela principal (após login)
+├── login.html        ← Tela de login
+├── server.js         ← Já pronto e compatível
+├── package.json
+└── /documentos/
