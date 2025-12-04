@@ -9,9 +9,13 @@ Sistema completo para cadastro e gerenciamento de pessoas e eventos PCD, com env
 
 ## 📂 Estrutura do Projeto
 
-pcd-eventos-backend/
+pcd-eventos/
 │
-├── server.js
+├── server.js               ← backend + frontend integrado
 ├── package.json
 ├── .gitignore
-└── /documentos/       ← (gerada automaticamente, não versionada)
+├── /frontend/              ← contém o site (index.html, login.html, logo.png, etc.)
+│   ├── index.html
+│   ├── login.html
+│   └── logo.png
+└── /documentos/            ← criada automaticamente no upload
