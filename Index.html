@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Sistema PCD — Eventos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --grad1: #8338ec;
+      --grad2: #ff006e;
+      --grad3: #ffbe0b;
+      --bg: #f6f6f6;
+      --bg-dark: #1c1c22;
+      --card: #fff;
+      --card-dark: #292933;
+      --text: #222;
+      --text-dark: #f1f1f1;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background .3s, color .3s;
+    }
+
+    header {
+      background: linear-gradient(90deg, var(--grad1), var(--grad2), var(--grad3));
+      text-align: center;
+      color: white;
+      padding: 16px 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,.2);
+    }
+
+    header img.logo {
+      width: 180px;
+      display: block;
+      margin: 0 auto 8px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    #toggle-theme {
+      position: fixed;
+      top: 10px;
+      right: 12px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 99;
+    }
+
+    main { max-width: 1100px; margin: 20px auto; padding: 10px; }
+
+    .nav-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .nav-buttons button {
+      background: linear-gradient(90deg,var(--grad1),var(--grad2),var(--grad3));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .2s, opacity .3s;
+    }
+
+    .nav-buttons button:hover { transform: scale(1.03); opacity: 0.9; }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.05);
+    }
+
+    .hidden { display: none; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+    }
+
+    button.primary {
+      background: linear-gradient(90deg,var(--grad1),var(--grad2),var(--grad3));
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button.ghost {
+      border: 1px solid #ccc;
+      background: transparent;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+
+    /* Círculo luminoso */
+    .circle-status {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 6px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    }
+    .verde {
+      background: #4CAF50;
+      box-shadow: 0 0 8px #4CAF50;
+    }
+    .vermelho {
+      background: #E53935;
+      box-shadow: 0 0 8px #E53935;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      z-index: 90;
+    }
+
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 500px;
+      background: var(--card);
+      color: var(--text);
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      padding: 16px;
+      z-index: 100;
+      display: none;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal h3 { margin-top: 0; text-align: center; }
+    .modal label { font-weight: bold; display:block; margin-top:10px; }
+    .modal input[type=file] { width: 100%; margin-top:4px; }
+
+    .modal-actions {
+      text-align: right;
+      margin-top: 16px;
+    }
+
+    .dark {
+      --bg: var(--bg-dark);
+      --card: var(--card-dark);
+      --text: var(--text-dark);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <img src="Logo-do-Pre-Caju-1.png" alt="Logo Pré-Caju" class="logo">
+    <h1>Sistema PCD — Eventos</h1>
+  </header>
+
+  <button id="toggle-theme">🌙</button>
+
+  <main>
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" class="card">
+      <h2 style="text-align:center;">Acesso</h2>
+      <label>Usuário</label>
+      <input id="login-user">
+      <label>Senha</label>
+      <input id="login-pass" type="password">
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button id="btn-login" class="primary" style="flex:1;">Entrar</button>
+      </div>
+      <div id="login-msg" class="msg hidden" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div id="app" class="hidden">
+      <div class="nav-buttons">
+        <button data-target="card-eventos" class="active">Eventos</button>
+        <button data-target="card-pessoas">Pessoas</button>
+        <button data-target="card-relatorios">Relatórios</button>
+      </div>
+
+      <!-- CARD PESSOAS -->
+      <section class="card card-view active" id="card-pessoas">
+        <h2>Cadastro de Pessoas</h2>
+
+        <label>Nome</label>
+        <input id="p-nome">
+
+        <label>CPF</label>
+        <input id="p-cpf">
+
+        <label>Telefone</label>
+        <input id="p-tel">
+
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="p-salvar" class="primary">Salvar</button>
+        </div>
+
+        <div id="p-msg" class="msg hidden" style="margin-top:10px;"></div>
+
+        <h3 style="margin-top:14px;">Lista de Pessoas</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>CPF</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-pessoas"></tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <!-- MODAL DOCUMENTOS -->
+  <div id="modal-backdrop" class="modal-backdrop"></div>
+  <div id="modal-docs" class="modal">
+    <h3>Envio de Documentos</h3>
+    <p style="text-align:center;">Pessoa: <strong id="docs-nome"></strong></p>
+
+    <label>Foto (obrigatório)</label>
+    <input type="file" id="doc-foto" accept=".jpg,.jpeg,.png">
+
+    <label>Documento nacional com foto (obrigatório)</label>
+    <input type="file" id="doc-doc-nacional" accept=".jpg,.jpeg,.png">
+
+    <label>Cadastro CadÚnico (obrigatório)</label>
+    <input type="file" id="doc-cad" accept=".jpg,.jpeg,.png">
+
+    <label>Comprovante de residência (obrigatório)</label>
+    <input type="file" id="doc-comprovante" accept=".jpg,.jpeg,.png">
+
+    <label>Cartão BPC (opcional)</label>
+    <input type="file" id="doc-bpc" accept=".jpg,.jpeg,.png,.pdf">
+
+    <label>Documento INSS (opcional)</label>
+    <input type="file" id="doc-inss" accept=".jpg,.jpeg,.png,.pdf">
+
+    <label>Laudo médico (opcional)</label>
+    <input type="file" id="doc-laudo" accept=".jpg,.jpeg,.png,.pdf">
+
+    <div class="modal-actions">
+      <button id="btn-docs-cancelar" class="ghost">Cancelar</button>
+      <button id="btn-docs-enviar" class="primary">Enviar Documentos</button>
+    </div>
+  </div>
+<script>
+let pessoas = JSON.parse(localStorage.getItem("pessoas") || "[]");
+const tabelaPessoas = document.getElementById("tabela-pessoas");
+const msgP = document.getElementById("p-msg");
+const modal = document.getElementById("modal-docs");
+const backdrop = document.getElementById("modal-backdrop");
+const docsNome = document.getElementById("docs-nome");
+let pessoaSelecionada = null;
+
+// ==== salvar pessoa ====
+document.getElementById("p-salvar").addEventListener("click", () => {
+  const nome = document.getElementById("p-nome").value.trim();
+  const cpf = document.getElementById("p-cpf").value.trim();
+  const tel = document.getElementById("p-tel").value.trim();
+
+  if (!nome || !cpf) {
+    msgP.textContent = "Preencha nome e CPF!";
+    msgP.classList.remove("hidden");
+    setTimeout(()=>msgP.classList.add("hidden"),2000);
+    return;
+  }
+
+  const existente = pessoas.find(p=>p.cpf===cpf);
+  if (existente) {
+    existente.nome = nome;
+    existente.tel = tel;
+  } else {
+    pessoas.push({ nome, cpf, tel, documentosCompletos:false });
+  }
+
+  localStorage.setItem("pessoas", JSON.stringify(pessoas));
+  document.getElementById("p-nome").value = "";
+  document.getElementById("p-cpf").value = "";
+  document.getElementById("p-tel").value = "";
+  renderPessoas();
+});
+
+// ==== renderizar tabela ====
+function renderPessoas(){
+  tabelaPessoas.innerHTML = "";
+  pessoas.sort((a,b)=>a.nome.localeCompare(b.nome));
+  pessoas.forEach(p=>{
+    const tr = document.createElement("tr");
+    const cor = p.documentosCompletos ? "verde" : "vermelho";
+    tr.innerHTML = `
+      <td>${p.nome} <span class="circle-status ${cor}"></span></td>
+      <td>${p.cpf}</td>
+      <td>
+        <button class="ghost btn-docs" data-cpf="${p.cpf}">📤 Enviar Documentos</button>
+        <button class="ghost btn-view" data-cpf="${p.cpf}">👁️ Visualizar</button>
+      </td>`;
+    tabelaPessoas.appendChild(tr);
+  });
+
+  document.querySelectorAll(".btn-docs").forEach(btn=>{
+    btn.addEventListener("click",()=>abrirModal(btn.dataset.cpf));
+  });
+
+  document.querySelectorAll(".btn-view").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const pessoa = pessoas.find(p=>p.cpf===btn.dataset.cpf);
+      if (pessoa) window.open(`/documentos/${encodeURIComponent(pessoa.nome)}/`,"_blank");
+    });
+  });
+}
+
+renderPessoas();
+
+// ==== modal ====
+function abrirModal(cpf){
+  pessoaSelecionada = pessoas.find(p=>p.cpf===cpf);
+  if (!pessoaSelecionada) return;
+  docsNome.textContent = pessoaSelecionada.nome;
+  modal.style.display = "block";
+  backdrop.style.display = "block";
+}
+
+document.getElementById("btn-docs-cancelar").addEventListener("click",()=>{
+  modal.style.display="none";
+  backdrop.style.display="none";
+});
+
+// ==== enviar documentos ====
+document.getElementById("btn-docs-enviar").addEventListener("click",async ()=>{
+  if (!pessoaSelecionada) return;
+  const formData = new FormData();
+  formData.append("nomePessoa", pessoaSelecionada.nome);
+
+  const obrigatorios = ["foto","doc-nacional","cad","comprovante"];
+  const campos = {
+    "foto": document.getElementById("doc-foto").files[0],
+    "doc-nacional": document.getElementById("doc-doc-nacional").files[0],
+    "cad": document.getElementById("doc-cad").files[0],
+    "comprovante": document.getElementById("doc-comprovante").files[0],
+    "bpc": document.getElementById("doc-bpc").files[0],
+    "inss": document.getElementById("doc-inss").files[0],
+    "laudo": document.getElementById("doc-laudo").files[0]
+  };
+
+  let faltando = false;
+  obrigatorios.forEach(c=>{
+    if(!campos[c]) faltando = true;
+  });
+
+  for (let key in campos) {
+    if (campos[key]) formData.append(key, campos[key]);
+  }
+
+  try {
+    await fetch("/upload",{method:"POST",body:formData});
+    if (faltando) {
+      alert("Envie todos os documentos obrigatórios para que apareça nos relatórios.");
+      pessoaSelecionada.documentosCompletos = false;
+    } else {
+      alert("Documentos enviados com sucesso!");
+      pessoaSelecionada.documentosCompletos = true;
+    }
+    localStorage.setItem("pessoas", JSON.stringify(pessoas));
+    modal.style.display="none";
+    backdrop.style.display="none";
+    renderPessoas();
+  } catch(e){
+    alert("Erro ao enviar documentos!");
+  }
+});
+
+// ==== tema claro/escuro ====
+const btnTheme = document.getElementById("toggle-theme");
+btnTheme.addEventListener("click",()=>{
+  document.body.classList.toggle("dark");
+  btnTheme.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+});
+</script>
+</body>
+</html>
