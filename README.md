@@ -11,11 +11,19 @@ Sistema completo para cadastro e gerenciamento de pessoas e eventos PCD, com env
 
 pcd-eventos/
 │
-├── server.js               ← backend + frontend integrado
-├── package.json
-├── .gitignore
-├── /frontend/              ← contém o site (index.html, login.html, logo.png, etc.)
+├── server.js                 ← Backend Express + Frontend integrados
+├── package.json              ← Dependências e scripts
+├── .gitignore                ← Arquivos ignorados pelo Git
+│
+├── /frontend/                ← Interface do usuário
 │   ├── index.html
 │   ├── login.html
 │   └── logo.png
-└── /documentos/            ← criada automaticamente no upload
+│
+└── /documentos/              ← Criada automaticamente para uploads
+    ├── João da Silva/
+    │   ├── foto.jpg
+    │   ├── doc-nacional.png
+    │   └── comprovante.pdf
+    └── logs/
+        └── logs.json
