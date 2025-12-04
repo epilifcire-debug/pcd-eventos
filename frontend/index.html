@@ -8,9 +8,13 @@
   <!-- CSS minificado -->
   <link rel="stylesheet" href="style.min.css" />
 
-  <!-- Biblioteca PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Biblioteca PDF (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
+  <!-- Script principal minificado -->
+  <script src="app.min.js" defer></script>
 </head>
+
 <body>
   <header>
     <img src="logo.png" alt="Logo Pré-Caju" class="logo" />
@@ -18,19 +22,21 @@
     <p>Gestão de Pessoas, Eventos e Documentos</p>
   </header>
 
-  <button id="toggle-theme">🌙</button>
+  <button id="toggle-theme" title="Alternar tema">🌙</button>
 
   <main>
-    <!-- Login -->
+    <!-- Tela de Login -->
     <section id="login-screen" class="card">
       <h2>Acesso ao Sistema</h2>
       <p style="font-size:12px;opacity:0.8;">
         E-mail padrão: <b>admin@pcd.com</b> &nbsp; Senha: <b>1234</b>
       </p>
-      <label>E-mail</label>
-      <input id="login-email" type="email" placeholder="seuemail@exemplo.com" />
-      <label>Senha</label>
-      <input id="login-pass" type="password" placeholder="••••••••" />
+      <label for="login-email">E-mail</label>
+      <input id="login-email" type="email" placeholder="seuemail@exemplo.com" autocomplete="username" />
+
+      <label for="login-pass">Senha</label>
+      <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+
       <button id="btn-login" class="primary" style="margin-top:10px;">Entrar</button>
       <p id="login-msg" style="font-size:13px;color:red;display:none;"></p>
     </section>
@@ -54,8 +60,5 @@
       <section id="card-admin" class="card hidden"></section>
     </section>
   </main>
-
-  <!-- Script principal minificado -->
-  <script src="app.min.js"></script>
 </body>
 </html>
