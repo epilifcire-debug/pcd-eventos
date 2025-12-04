@@ -131,6 +131,20 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
   }
 
+  #btn-sair {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: #ff006e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    padding: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+
   /* Modal */
   #modal-docs, #modal-backdrop {
     display: none;
@@ -197,14 +211,36 @@
 </header>
 
 <button id="toggle-theme">🌙</button>
+<button id="btn-sair">🚪</button>
 
 <main>
+  <!-- Painel Admin -->
   <div class="card" id="card-admin" style="display:none;">
     <h2>Painel do Administrador</h2>
-    <p>Bem-vindo, administrador! Gerencie logs e cadastros.</p>
-    <button id="btn-ver-logs">📋 Ver Logs de Uploads</button>
+    <p>Bem-vindo, administrador! Gerencie usuários e veja logs.</p>
+    <button id="btn-ver-logs">📋 Ver Logs</button>
   </div>
 
+  <!-- Painel de Usuários -->
+  <div class="card" id="card-usuarios" style="display:none;">
+    <h2>Gerenciar Usuários</h2>
+    <input id="u-nome" placeholder="Nome completo">
+    <input id="u-login" placeholder="Usuário">
+    <input id="u-senha" placeholder="Senha" type="password">
+    <select id="u-perfil">
+      <option value="usuario">Usuário comum</option>
+      <option value="admin">Administrador</option>
+    </select>
+    <button id="u-salvar">Salvar Usuário</button>
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>Usuário</th><th>Perfil</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tabela-usuarios"></tbody>
+    </table>
+  </div>
+
+  <!-- Cadastro de Pessoas -->
   <div class="card">
     <h2>Cadastro de Pessoas</h2>
     <input id="p-nome" placeholder="Nome completo">
@@ -234,17 +270,24 @@
   <label>Cartão BPC (opcional): <input type="file" id="doc-bpc" accept=".pdf"></label><br>
   <label>Documento INSS (opcional): <input type="file" id="doc-inss" accept=".pdf"></label><br>
   <label>Laudo médico (opcional): <input type="file" id="doc-laudo" accept=".pdf"></label><br>
-
   <div style="text-align:center;margin-top:10px;">
     <button id="btn-docs-enviar">Enviar</button>
     <button id="btn-docs-cancelar" class="ghost">Cancelar</button>
   </div>
 </div>
 
-<footer>
-  <p>© 2025 Sistema PCD Eventos</p>
-</footer>
+<footer><p>© 2025 Sistema PCD Eventos</p></footer>
+
 <script>
+// ============================
+//  PROTEÇÃO DE LOGIN
+// ============================
+const perfil = localStorage.getItem("perfil");
+if (!perfil) {
+  alert("⚠️ Você precisa fazer login para acessar o sistema.");
+  window.location.href = "login.html";
+}
+
 // ============================
 //  CONFIGURAÇÃO INTELIGENTE
 // ============================
@@ -252,23 +295,60 @@ const BASE_URL = window.location.hostname.includes("localhost")
   ? "http://localhost:3000"
   : "https://pcd-eventos.onrender.com";
 
-console.log("🌐 Ambiente detectado:", BASE_URL);
+// ============================
+//  PAINEL DE USUÁRIOS (ADMIN)
+// ============================
+let usuarios = JSON.parse(localStorage.getItem("usuarios") || "[]");
+
+function renderUsuarios() {
+  const corpo = document.getElementById("tabela-usuarios");
+  corpo.innerHTML = "";
+  usuarios.forEach((u, i) => {
+    corpo.innerHTML += `
+      <tr>
+        <td>${u.nome}</td>
+        <td>${u.login}</td>
+        <td>${u.perfil}</td>
+        <td>
+          <button class="ghost" onclick="editarUsuario(${i})">✏️</button>
+          <button class="ghost" onclick="excluirUsuario(${i})">🗑️</button>
+        </td>
+      </tr>`;
+  });
+}
+
+document.getElementById("u-salvar").addEventListener("click", () => {
+  const nome = document.getElementById("u-nome").value.trim();
+  const login = document.getElementById("u-login").value.trim().toLowerCase();
+  const senha = document.getElementById("u-senha").value.trim();
+  const perfil = document.getElementById("u-perfil").value;
+  if (!nome || !login || !senha) return alert("Preencha todos os campos!");
+
+  const existente = usuarios.find(u => u.login === login);
+  if (existente) {
+    existente.nome = nome; existente.senha = senha; existente.perfil = perfil;
+  } else {
+    usuarios.push({ nome, login, senha, perfil });
+  }
+
+  localStorage.setItem("usuarios", JSON.stringify(usuarios));
+  renderUsuarios();
+});
+
+function editarUsuario(i){const u=usuarios[i];document.getElementById("u-nome").value=u.nome;document.getElementById("u-login").value=u.login;document.getElementById("u-senha").value=u.senha;document.getElementById("u-perfil").value=u.perfil;}
+function excluirUsuario(i){if(confirm("Excluir este usuário?")){usuarios.splice(i,1);localStorage.setItem("usuarios",JSON.stringify(usuarios));renderUsuarios();}}
 
 // ============================
-//  SIMULAÇÃO DE LOGIN / PERFIL
+//  CONTROLE DE ADMIN
 // ============================
-// Caso você já tenha login real, substitua este bloco.
-if (!localStorage.getItem("perfil")) {
-  const perfil = prompt("Digite seu perfil: admin ou usuario");
-  localStorage.setItem("perfil", perfil === "admin" ? "admin" : "usuario");
-}
-const perfilUsuario = localStorage.getItem("perfil");
-if (perfilUsuario === "admin") {
+if (perfil === "admin") {
   document.getElementById("card-admin").style.display = "block";
+  document.getElementById("card-usuarios").style.display = "block";
+  renderUsuarios();
 }
 
 // ============================
-//  VARIÁVEIS GERAIS
+//  CADASTRO DE PESSOAS + UPLOAD
 // ============================
 let pessoas = JSON.parse(localStorage.getItem("pessoas") || "[]");
 const tabelaPessoas = document.getElementById("tabela-pessoas");
@@ -278,16 +358,12 @@ const backdrop = document.getElementById("modal-backdrop");
 const docsNome = document.getElementById("docs-nome");
 let pessoaSelecionada = null;
 
-// ============================
-//  SALVAR PESSOA
-// ============================
 document.getElementById("p-salvar").addEventListener("click", () => {
   const nome = document.getElementById("p-nome").value.trim();
   const cpf = document.getElementById("p-cpf").value.trim();
   const tel = document.getElementById("p-tel").value.trim();
 
   if (!nome || !cpf) {
-    msgP.textContent = "Preencha nome e CPF!";
     msgP.classList.remove("hidden");
     setTimeout(() => msgP.classList.add("hidden"), 2000);
     return;
@@ -295,8 +371,7 @@ document.getElementById("p-salvar").addEventListener("click", () => {
 
   const existente = pessoas.find(p => p.cpf === cpf);
   if (existente) {
-    existente.nome = nome;
-    existente.tel = tel;
+    existente.nome = nome; existente.tel = tel;
   } else {
     pessoas.push({ nome, cpf, tel, documentosCompletos: false });
   }
@@ -308,126 +383,76 @@ document.getElementById("p-salvar").addEventListener("click", () => {
   renderPessoas();
 });
 
-// ============================
-//  RENDERIZAR TABELA
-// ============================
-function renderPessoas() {
-  tabelaPessoas.innerHTML = "";
-  pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
-  pessoas.forEach(p => {
-    const tr = document.createElement("tr");
-    const cor = p.documentosCompletos ? "verde" : "vermelho";
-    tr.innerHTML = `
-      <td>${p.nome} <span class="circle-status ${cor}"></span></td>
+function renderPessoas(){
+  tabelaPessoas.innerHTML="";
+  pessoas.sort((a,b)=>a.nome.localeCompare(b.nome));
+  pessoas.forEach(p=>{
+    const tr=document.createElement("tr");
+    const cor=p.documentosCompletos?"verde":"vermelho";
+    tr.innerHTML=`
+      <td>${p.nome}<span class="circle-status ${cor}"></span></td>
       <td>${p.cpf}</td>
       <td>
-        <button class="ghost btn-docs" data-cpf="${p.cpf}">📤 Enviar Documentos</button>
-        <button class="ghost btn-view" data-cpf="${p.cpf}">👁️ Visualizar</button>
+        <button class="ghost btn-docs" data-cpf="${p.cpf}">📤 Enviar Docs</button>
+        <button class="ghost btn-view" data-cpf="${p.cpf}">👁️ Ver</button>
       </td>`;
     tabelaPessoas.appendChild(tr);
   });
 
-  document.querySelectorAll(".btn-docs").forEach(btn => {
-    btn.addEventListener("click", () => abrirModal(btn.dataset.cpf));
-  });
-
-  document.querySelectorAll(".btn-view").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const pessoa = pessoas.find(p => p.cpf === btn.dataset.cpf);
-      if (pessoa) window.open(`${BASE_URL}/documentos/${encodeURIComponent(pessoa.nome)}/`, "_blank");
-    });
-  });
+  document.querySelectorAll(".btn-docs").forEach(b=>b.addEventListener("click",()=>abrirModal(b.dataset.cpf)));
+  document.querySelectorAll(".btn-view").forEach(b=>b.addEventListener("click",()=>{
+    const pessoa=pessoas.find(p=>p.cpf===b.dataset.cpf);
+    if(pessoa)window.open(`${BASE_URL}/documentos/${encodeURIComponent(pessoa.nome)}/`,"_blank");
+  }));
 }
-
 renderPessoas();
 
-// ============================
-//  MODAL DOCUMENTOS
-// ============================
-function abrirModal(cpf) {
-  pessoaSelecionada = pessoas.find(p => p.cpf === cpf);
-  if (!pessoaSelecionada) return;
-  docsNome.textContent = pessoaSelecionada.nome;
-  modal.style.display = "block";
-  backdrop.style.display = "block";
-}
+function abrirModal(cpf){pessoaSelecionada=pessoas.find(p=>p.cpf===cpf);docsNome.textContent=pessoaSelecionada.nome;modal.style.display="block";backdrop.style.display="block";}
+document.getElementById("btn-docs-cancelar").onclick=()=>{modal.style.display="none";backdrop.style.display="none";};
 
-document.getElementById("btn-docs-cancelar").addEventListener("click", () => {
-  modal.style.display = "none";
-  backdrop.style.display = "none";
-});
-
-// ============================
-//  ENVIAR DOCUMENTOS
-// ============================
-document.getElementById("btn-docs-enviar").addEventListener("click", async () => {
-  if (!pessoaSelecionada) return;
-
-  const formData = new FormData();
-  formData.append("nomePessoa", pessoaSelecionada.nome);
-
-  const obrigatorios = ["foto", "doc-nacional", "cad", "comprovante"];
-  const campos = {
-    "foto": document.getElementById("doc-foto").files[0],
-    "doc-nacional": document.getElementById("doc-doc-nacional").files[0],
-    "cad": document.getElementById("doc-cad").files[0],
-    "comprovante": document.getElementById("doc-comprovante").files[0],
-    "bpc": document.getElementById("doc-bpc").files[0],
-    "inss": document.getElementById("doc-inss").files[0],
-    "laudo": document.getElementById("doc-laudo").files[0]
+document.getElementById("btn-docs-enviar").onclick=async()=>{
+  const obrig=["foto","doc-nacional","cad","comprovante"];
+  const campos={
+    "foto":doc-foto.files[0],"doc-nacional":doc-doc-nacional.files[0],
+    "cad":doc-cad.files[0],"comprovante":doc-comprovante.files[0],
+    "bpc":doc-bpc.files[0],"inss":doc-inss.files[0],"laudo":doc-laudo.files[0]
   };
-
-  let faltando = false;
-  obrigatorios.forEach(c => {
-    if (!campos[c]) faltando = true;
-  });
-
-  for (let key in campos) {
-    if (campos[key]) formData.append(key, campos[key]);
-  }
-
-  try {
-    const resposta = await fetch(`${BASE_URL}/upload`, { method: "POST", body: formData });
-    const resultado = await resposta.json();
-
-    if (faltando) {
-      alert("Envie todos os documentos obrigatórios para que apareça nos relatórios.");
-      pessoaSelecionada.documentosCompletos = false;
-    } else {
-      alert("Documentos enviados com sucesso!");
-      pessoaSelecionada.documentosCompletos = true;
-    }
-
-    localStorage.setItem("pessoas", JSON.stringify(pessoas));
-    modal.style.display = "none";
-    backdrop.style.display = "none";
-    renderPessoas();
-    console.log("📤 Upload concluído:", resultado);
-  } catch (e) {
-    alert("❌ Erro ao enviar documentos!");
-    console.error(e);
-  }
-});
+  let faltando=obrig.some(c=>!campos[c]);
+  const fd=new FormData();fd.append("nomePessoa",pessoaSelecionada.nome);
+  for(let k in campos)if(campos[k])fd.append(k,campos[k]);
+  try{
+    const r=await fetch(`${BASE_URL}/upload`,{method:"POST",body:fd});
+    await r.json();
+    if(faltando){alert("Faltam documentos obrigatórios!");pessoaSelecionada.documentosCompletos=false;}
+    else{alert("Enviado com sucesso!");pessoaSelecionada.documentosCompletos=true;}
+    localStorage.setItem("pessoas",JSON.stringify(pessoas));modal.style.display="none";backdrop.style.display="none";renderPessoas();
+  }catch(e){alert("Erro ao enviar.");}
+};
 
 // ============================
-//  BOTÃO DE LOGS (SOMENTE ADMIN)
+//  VER LOGS (ADMIN)
 // ============================
-document.getElementById("btn-ver-logs").addEventListener("click", () => {
-  if (perfilUsuario === "admin") {
-    window.open(`${BASE_URL}/logs?perfil=admin`, "_blank");
-  } else {
-    alert("Acesso negado. Somente administradores podem ver os logs.");
+document.getElementById("btn-ver-logs").onclick=()=>{
+  if(perfil==="admin")window.open(`${BASE_URL}/logs?perfil=admin`,"_blank");
+};
+
+// ============================
+//  SAIR DO SISTEMA
+// ============================
+document.getElementById("btn-sair").onclick=()=>{
+  if(confirm("Deseja sair?")){
+    localStorage.clear();
+    window.location.href="login.html";
   }
-});
+};
 
 // ============================
 //  TEMA CLARO/ESCURO
 // ============================
-const btnTheme = document.getElementById("toggle-theme");
-btnTheme.addEventListener("click", () => {
+document.getElementById("toggle-theme").onclick=()=>{
   document.body.classList.toggle("dark");
-  btnTheme.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
-});
+  toggle-theme.textContent=document.body.classList.contains("dark")?"☀️":"🌙";
+};
 </script>
 </body>
 </html>
