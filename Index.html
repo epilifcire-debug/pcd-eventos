@@ -1,298 +1,275 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <title>Sistema PCD — Eventos</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema PCD Eventos</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #8338ec, #ff006e, #ffbe0b);
+    background-attachment: fixed;
+    color: #222;
+  }
 
-  <style>
-    :root {
-      --grad1: #8338ec;
-      --grad2: #ff006e;
-      --grad3: #ffbe0b;
-      --bg: #f6f6f6;
-      --bg-dark: #1c1c22;
-      --card: #fff;
-      --card-dark: #292933;
-      --text: #222;
-      --text-dark: #f1f1f1;
-    }
+  header {
+    text-align: center;
+    padding: 15px;
+  }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Inter", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      transition: background .3s, color .3s;
-    }
+  header img {
+    width: 120px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+  }
 
-    header {
-      background: linear-gradient(90deg, var(--grad1), var(--grad2), var(--grad3));
-      text-align: center;
-      color: white;
-      padding: 16px 8px;
-      box-shadow: 0 3px 10px rgba(0,0,0,.2);
-    }
+  h1 {
+    margin: 5px 0;
+    color: #fff;
+    font-weight: 600;
+  }
 
-    header img.logo {
-      width: 180px;
-      display: block;
-      margin: 0 auto 8px;
-    }
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    padding: 20px;
+  }
 
-    header h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-    }
+  .card {
+    background: #fff;
+    width: 90%;
+    max-width: 900px;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  }
 
-    #toggle-theme {
-      position: fixed;
-      top: 10px;
-      right: 12px;
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      font-size: 18px;
-      cursor: pointer;
-      z-index: 99;
-    }
+  .card h2 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+  }
 
-    main { max-width: 1100px; margin: 20px auto; padding: 10px; }
+  input, select {
+    padding: 8px;
+    margin: 5px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: calc(100% - 20px);
+    box-sizing: border-box;
+  }
 
-    .nav-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-      margin: 16px 0;
-    }
+  button {
+    background: #8338ec;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: 0.2s;
+  }
 
-    .nav-buttons button {
-      background: linear-gradient(90deg,var(--grad1),var(--grad2),var(--grad3));
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: transform .2s, opacity .3s;
-    }
+  button:hover { background: #6f31c8; }
 
-    .nav-buttons button:hover { transform: scale(1.03); opacity: 0.9; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
 
-    .card {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 16px;
-      margin-top: 12px;
-      box-shadow: 0 4px 14px rgba(0,0,0,.05);
-    }
+  th, td {
+    padding: 8px;
+    border: 1px solid #ccc;
+    text-align: left;
+  }
 
-    .hidden { display: none; }
+  th {
+    background: #8338ec;
+    color: white;
+  }
 
-    input, select, textarea {
-      width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      font-size: 14px;
-    }
+  .circle-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: 8px;
+  }
+  .verde { background: #1ed760; }
+  .vermelho { background: #ff4d4d; }
 
-    button.primary {
-      background: linear-gradient(90deg,var(--grad1),var(--grad2),var(--grad3));
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+  .ghost {
+    background: transparent;
+    color: #8338ec;
+    border: 1px solid #8338ec;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
 
-    button.ghost {
-      border: 1px solid #ccc;
-      background: transparent;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+  .ghost:hover {
+    background: #8338ec;
+    color: #fff;
+  }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
+  #toggle-theme {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: #fff;
+    color: #333;
+    border: none;
+    border-radius: 50%;
+    padding: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
 
-    th, td {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-    }
+  /* Modal */
+  #modal-docs, #modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+  }
 
-    /* Círculo luminoso */
-    .circle-status {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-left: 6px;
-      box-shadow: 0 0 6px rgba(0,0,0,0.4);
-    }
-    .verde {
-      background: #4CAF50;
-      box-shadow: 0 0 8px #4CAF50;
-    }
-    .vermelho {
-      background: #E53935;
-      box-shadow: 0 0 8px #E53935;
-    }
+  #modal-backdrop {
+    background: rgba(0,0,0,0.6);
+    z-index: 10;
+  }
 
-    /* Modal */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      z-index: 90;
-    }
+  #modal-docs {
+    z-index: 11;
+    background: #fff;
+    width: 90%;
+    max-width: 500px;
+    margin: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 12px;
+    padding: 20px;
+  }
 
-    .modal {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      max-width: 500px;
-      background: var(--card);
-      color: var(--text);
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
-      padding: 16px;
-      z-index: 100;
-      display: none;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
+  #modal-docs h3 {
+    margin-top: 0;
+    text-align: center;
+  }
 
-    .modal h3 { margin-top: 0; text-align: center; }
-    .modal label { font-weight: bold; display:block; margin-top:10px; }
-    .modal input[type=file] { width: 100%; margin-top:4px; }
+  .hidden { display: none; }
 
-    .modal-actions {
-      text-align: right;
-      margin-top: 16px;
-    }
+  /* Tema escuro */
+  body.dark {
+    background: #121212;
+    color: #eee;
+  }
+  body.dark .card {
+    background: #1e1e1e;
+    color: #eee;
+  }
+  body.dark th {
+    background: #ff006e;
+  }
+  body.dark button {
+    background: #ff006e;
+  }
+  body.dark .ghost {
+    color: #ff006e;
+    border-color: #ff006e;
+  }
 
-    .dark {
-      --bg: var(--bg-dark);
-      --card: var(--card-dark);
-      --text: var(--text-dark);
-    }
-  </style>
+  footer {
+    text-align: center;
+    padding: 10px;
+    color: #fff;
+  }
+</style>
 </head>
-
 <body>
-  <header>
-    <img src="Logo-do-Pre-Caju-1.png" alt="Logo Pré-Caju" class="logo">
-    <h1>Sistema PCD — Eventos</h1>
-  </header>
+<header>
+  <img src="logo.png" alt="Logo">
+  <h1>Sistema PCD Eventos</h1>
+</header>
 
-  <button id="toggle-theme">🌙</button>
+<button id="toggle-theme">🌙</button>
 
-  <main>
-    <!-- TELA DE LOGIN -->
-    <div id="login-screen" class="card">
-      <h2 style="text-align:center;">Acesso</h2>
-      <label>Usuário</label>
-      <input id="login-user">
-      <label>Senha</label>
-      <input id="login-pass" type="password">
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button id="btn-login" class="primary" style="flex:1;">Entrar</button>
-      </div>
-      <div id="login-msg" class="msg hidden" style="margin-top:12px;"></div>
-    </div>
-
-    <!-- CONTEÚDO PRINCIPAL -->
-    <div id="app" class="hidden">
-      <div class="nav-buttons">
-        <button data-target="card-eventos" class="active">Eventos</button>
-        <button data-target="card-pessoas">Pessoas</button>
-        <button data-target="card-relatorios">Relatórios</button>
-      </div>
-
-      <!-- CARD PESSOAS -->
-      <section class="card card-view active" id="card-pessoas">
-        <h2>Cadastro de Pessoas</h2>
-
-        <label>Nome</label>
-        <input id="p-nome">
-
-        <label>CPF</label>
-        <input id="p-cpf">
-
-        <label>Telefone</label>
-        <input id="p-tel">
-
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          <button id="p-salvar" class="primary">Salvar</button>
-        </div>
-
-        <div id="p-msg" class="msg hidden" style="margin-top:10px;"></div>
-
-        <h3 style="margin-top:14px;">Lista de Pessoas</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>CPF</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-pessoas"></tbody>
-        </table>
-      </section>
-    </div>
-  </main>
-
-  <!-- MODAL DOCUMENTOS -->
-  <div id="modal-backdrop" class="modal-backdrop"></div>
-  <div id="modal-docs" class="modal">
-    <h3>Envio de Documentos</h3>
-    <p style="text-align:center;">Pessoa: <strong id="docs-nome"></strong></p>
-
-    <label>Foto (obrigatório)</label>
-    <input type="file" id="doc-foto" accept=".jpg,.jpeg,.png">
-
-    <label>Documento nacional com foto (obrigatório)</label>
-    <input type="file" id="doc-doc-nacional" accept=".jpg,.jpeg,.png">
-
-    <label>Cadastro CadÚnico (obrigatório)</label>
-    <input type="file" id="doc-cad" accept=".jpg,.jpeg,.png">
-
-    <label>Comprovante de residência (obrigatório)</label>
-    <input type="file" id="doc-comprovante" accept=".jpg,.jpeg,.png">
-
-    <label>Cartão BPC (opcional)</label>
-    <input type="file" id="doc-bpc" accept=".jpg,.jpeg,.png,.pdf">
-
-    <label>Documento INSS (opcional)</label>
-    <input type="file" id="doc-inss" accept=".jpg,.jpeg,.png,.pdf">
-
-    <label>Laudo médico (opcional)</label>
-    <input type="file" id="doc-laudo" accept=".jpg,.jpeg,.png,.pdf">
-
-    <div class="modal-actions">
-      <button id="btn-docs-cancelar" class="ghost">Cancelar</button>
-      <button id="btn-docs-enviar" class="primary">Enviar Documentos</button>
-    </div>
+<main>
+  <div class="card" id="card-admin" style="display:none;">
+    <h2>Painel do Administrador</h2>
+    <p>Bem-vindo, administrador! Gerencie logs e cadastros.</p>
+    <button id="btn-ver-logs">📋 Ver Logs de Uploads</button>
   </div>
+
+  <div class="card">
+    <h2>Cadastro de Pessoas</h2>
+    <input id="p-nome" placeholder="Nome completo">
+    <input id="p-cpf" placeholder="CPF">
+    <input id="p-tel" placeholder="Telefone (opcional)">
+    <button id="p-salvar">Salvar</button>
+    <p id="p-msg" class="hidden" style="color:red;">Preencha os campos obrigatórios</p>
+
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>CPF</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tabela-pessoas"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal Documentos -->
+<div id="modal-backdrop"></div>
+<div id="modal-docs">
+  <h3>Envio de Documentos</h3>
+  <p><strong id="docs-nome"></strong></p>
+  <label>Foto (obrigatório): <input type="file" id="doc-foto" accept=".jpg,.jpeg,.png"></label><br>
+  <label>Documento nacional com foto (obrigatório): <input type="file" id="doc-doc-nacional" accept=".jpg,.jpeg,.png"></label><br>
+  <label>Cadastro CadÚnico (obrigatório): <input type="file" id="doc-cad" accept=".jpg,.jpeg,.png"></label><br>
+  <label>Comprovante de residência (obrigatório): <input type="file" id="doc-comprovante" accept=".jpg,.jpeg,.png"></label><br>
+  <label>Cartão BPC (opcional): <input type="file" id="doc-bpc" accept=".pdf"></label><br>
+  <label>Documento INSS (opcional): <input type="file" id="doc-inss" accept=".pdf"></label><br>
+  <label>Laudo médico (opcional): <input type="file" id="doc-laudo" accept=".pdf"></label><br>
+
+  <div style="text-align:center;margin-top:10px;">
+    <button id="btn-docs-enviar">Enviar</button>
+    <button id="btn-docs-cancelar" class="ghost">Cancelar</button>
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 Sistema PCD Eventos</p>
+</footer>
 <script>
+// ============================
+//  CONFIGURAÇÃO INTELIGENTE
+// ============================
+const BASE_URL = window.location.hostname.includes("localhost")
+  ? "http://localhost:3000"
+  : "https://pcd-eventos.onrender.com";
+
+console.log("🌐 Ambiente detectado:", BASE_URL);
+
+// ============================
+//  SIMULAÇÃO DE LOGIN / PERFIL
+// ============================
+// Caso você já tenha login real, substitua este bloco.
+if (!localStorage.getItem("perfil")) {
+  const perfil = prompt("Digite seu perfil: admin ou usuario");
+  localStorage.setItem("perfil", perfil === "admin" ? "admin" : "usuario");
+}
+const perfilUsuario = localStorage.getItem("perfil");
+if (perfilUsuario === "admin") {
+  document.getElementById("card-admin").style.display = "block";
+}
+
+// ============================
+//  VARIÁVEIS GERAIS
+// ============================
 let pessoas = JSON.parse(localStorage.getItem("pessoas") || "[]");
 const tabelaPessoas = document.getElementById("tabela-pessoas");
 const msgP = document.getElementById("p-msg");
@@ -301,7 +278,9 @@ const backdrop = document.getElementById("modal-backdrop");
 const docsNome = document.getElementById("docs-nome");
 let pessoaSelecionada = null;
 
-// ==== salvar pessoa ====
+// ============================
+//  SALVAR PESSOA
+// ============================
 document.getElementById("p-salvar").addEventListener("click", () => {
   const nome = document.getElementById("p-nome").value.trim();
   const cpf = document.getElementById("p-cpf").value.trim();
@@ -310,16 +289,16 @@ document.getElementById("p-salvar").addEventListener("click", () => {
   if (!nome || !cpf) {
     msgP.textContent = "Preencha nome e CPF!";
     msgP.classList.remove("hidden");
-    setTimeout(()=>msgP.classList.add("hidden"),2000);
+    setTimeout(() => msgP.classList.add("hidden"), 2000);
     return;
   }
 
-  const existente = pessoas.find(p=>p.cpf===cpf);
+  const existente = pessoas.find(p => p.cpf === cpf);
   if (existente) {
     existente.nome = nome;
     existente.tel = tel;
   } else {
-    pessoas.push({ nome, cpf, tel, documentosCompletos:false });
+    pessoas.push({ nome, cpf, tel, documentosCompletos: false });
   }
 
   localStorage.setItem("pessoas", JSON.stringify(pessoas));
@@ -329,11 +308,13 @@ document.getElementById("p-salvar").addEventListener("click", () => {
   renderPessoas();
 });
 
-// ==== renderizar tabela ====
-function renderPessoas(){
+// ============================
+//  RENDERIZAR TABELA
+// ============================
+function renderPessoas() {
   tabelaPessoas.innerHTML = "";
-  pessoas.sort((a,b)=>a.nome.localeCompare(b.nome));
-  pessoas.forEach(p=>{
+  pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+  pessoas.forEach(p => {
     const tr = document.createElement("tr");
     const cor = p.documentosCompletos ? "verde" : "vermelho";
     tr.innerHTML = `
@@ -346,41 +327,46 @@ function renderPessoas(){
     tabelaPessoas.appendChild(tr);
   });
 
-  document.querySelectorAll(".btn-docs").forEach(btn=>{
-    btn.addEventListener("click",()=>abrirModal(btn.dataset.cpf));
+  document.querySelectorAll(".btn-docs").forEach(btn => {
+    btn.addEventListener("click", () => abrirModal(btn.dataset.cpf));
   });
 
-  document.querySelectorAll(".btn-view").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const pessoa = pessoas.find(p=>p.cpf===btn.dataset.cpf);
-      if (pessoa) window.open(`/documentos/${encodeURIComponent(pessoa.nome)}/`,"_blank");
+  document.querySelectorAll(".btn-view").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pessoa = pessoas.find(p => p.cpf === btn.dataset.cpf);
+      if (pessoa) window.open(`${BASE_URL}/documentos/${encodeURIComponent(pessoa.nome)}/`, "_blank");
     });
   });
 }
 
 renderPessoas();
 
-// ==== modal ====
-function abrirModal(cpf){
-  pessoaSelecionada = pessoas.find(p=>p.cpf===cpf);
+// ============================
+//  MODAL DOCUMENTOS
+// ============================
+function abrirModal(cpf) {
+  pessoaSelecionada = pessoas.find(p => p.cpf === cpf);
   if (!pessoaSelecionada) return;
   docsNome.textContent = pessoaSelecionada.nome;
   modal.style.display = "block";
   backdrop.style.display = "block";
 }
 
-document.getElementById("btn-docs-cancelar").addEventListener("click",()=>{
-  modal.style.display="none";
-  backdrop.style.display="none";
+document.getElementById("btn-docs-cancelar").addEventListener("click", () => {
+  modal.style.display = "none";
+  backdrop.style.display = "none";
 });
 
-// ==== enviar documentos ====
-document.getElementById("btn-docs-enviar").addEventListener("click",async ()=>{
+// ============================
+//  ENVIAR DOCUMENTOS
+// ============================
+document.getElementById("btn-docs-enviar").addEventListener("click", async () => {
   if (!pessoaSelecionada) return;
+
   const formData = new FormData();
   formData.append("nomePessoa", pessoaSelecionada.nome);
 
-  const obrigatorios = ["foto","doc-nacional","cad","comprovante"];
+  const obrigatorios = ["foto", "doc-nacional", "cad", "comprovante"];
   const campos = {
     "foto": document.getElementById("doc-foto").files[0],
     "doc-nacional": document.getElementById("doc-doc-nacional").files[0],
@@ -392,8 +378,8 @@ document.getElementById("btn-docs-enviar").addEventListener("click",async ()=>{
   };
 
   let faltando = false;
-  obrigatorios.forEach(c=>{
-    if(!campos[c]) faltando = true;
+  obrigatorios.forEach(c => {
+    if (!campos[c]) faltando = true;
   });
 
   for (let key in campos) {
@@ -401,7 +387,9 @@ document.getElementById("btn-docs-enviar").addEventListener("click",async ()=>{
   }
 
   try {
-    await fetch("https://pcd-eventos.onrender.com/upload",{method:"POST",body:formData});
+    const resposta = await fetch(`${BASE_URL}/upload`, { method: "POST", body: formData });
+    const resultado = await resposta.json();
+
     if (faltando) {
       alert("Envie todos os documentos obrigatórios para que apareça nos relatórios.");
       pessoaSelecionada.documentosCompletos = false;
@@ -409,18 +397,34 @@ document.getElementById("btn-docs-enviar").addEventListener("click",async ()=>{
       alert("Documentos enviados com sucesso!");
       pessoaSelecionada.documentosCompletos = true;
     }
+
     localStorage.setItem("pessoas", JSON.stringify(pessoas));
-    modal.style.display="none";
-    backdrop.style.display="none";
+    modal.style.display = "none";
+    backdrop.style.display = "none";
     renderPessoas();
-  } catch(e){
-    alert("Erro ao enviar documentos!");
+    console.log("📤 Upload concluído:", resultado);
+  } catch (e) {
+    alert("❌ Erro ao enviar documentos!");
+    console.error(e);
   }
 });
 
-// ==== tema claro/escuro ====
+// ============================
+//  BOTÃO DE LOGS (SOMENTE ADMIN)
+// ============================
+document.getElementById("btn-ver-logs").addEventListener("click", () => {
+  if (perfilUsuario === "admin") {
+    window.open(`${BASE_URL}/logs?perfil=admin`, "_blank");
+  } else {
+    alert("Acesso negado. Somente administradores podem ver os logs.");
+  }
+});
+
+// ============================
+//  TEMA CLARO/ESCURO
+// ============================
 const btnTheme = document.getElementById("toggle-theme");
-btnTheme.addEventListener("click",()=>{
+btnTheme.addEventListener("click", () => {
   document.body.classList.toggle("dark");
   btnTheme.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
 });
