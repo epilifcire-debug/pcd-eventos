@@ -401,7 +401,7 @@ document.getElementById("btn-docs-enviar").addEventListener("click",async ()=>{
   }
 
   try {
-    await fetch("/upload",{method:"POST",body:formData});
+    await fetch("https://pcd-eventos.onrender.com/upload",{method:"POST",body:formData});
     if (faltando) {
       alert("Envie todos os documentos obrigatórios para que apareça nos relatórios.");
       pessoaSelecionada.documentosCompletos = false;
