@@ -18,10 +18,18 @@ const JWT_SECRET = process.env.JWT_SECRET || "troque-esta-chave-por-uma-bem-segu
 // ---- MIDDLEWARES ----
 app.use(
   cors({
-    origin: [
-      "https://epilifcire-debug.github.io",
-      "http://localhost:3000"
-    ],
+    origin: function (origin, callback) {
+      const allowed = [
+        "https://epilifcire-debug.github.io",
+        "https://epilifcire-debug.github.io/pcd-eventos",
+        "http://localhost:3000"
+      ];
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS bloqueado: origem não permitida -> " + origin));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
@@ -118,3 +126,4 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
+
