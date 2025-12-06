@@ -463,6 +463,9 @@
           <button id="r-filtrar" class="ghost">Filtrar</button>
           <button id="r-pdf" class="ghost">Exportar PDF</button>
           <button id="r-print" class="ghost">Visualizar Impressão</button>
+          <button id="r-backup" class="primary">⬇️ Exportar Backup</button>
+          <button id="r-restore" class="ghost">⬆️ Importar Backup</button>
+          <input type="file" id="r-backup-file" accept=".json" style="display:none;">
         </div>
 
         <div id="r-msg" class="msg hidden"></div>
@@ -530,14 +533,30 @@
       ? "http://localhost:3000"
       : "https://pcd-eventos.onrender.com";
 
+    async function backupOnline() {
+      try {
+        const backup = { eventos, pessoas, usuarios };
+        await fetch(servidor + "/backup-json", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(backup),
+        });
+        console.log("💾 Backup online enviado com sucesso");
+      } catch (err) {
+        console.error("Erro ao enviar backup online:", err);
+      }
+    }
+
     function salvarTudo() {
       localStorage.setItem("eventos",  JSON.stringify(eventos));
       localStorage.setItem("pessoas",  JSON.stringify(pessoas));
       localStorage.setItem("usuarios", JSON.stringify(usuarios));
-      // backup automático simples em localStorage
+      // backup automático leve em localStorage
       localStorage.setItem("backupAuto", JSON.stringify({
         eventos, pessoas, usuarios, ts: Date.now()
       }));
+      // backup automático no Cloudinary
+      backupOnline();
     }
 
     // ===================== TEMA (CLARO / ESCURO) =====================
@@ -729,24 +748,31 @@
     const tabPessoas = document.getElementById("tab-pessoas");
     let cpfEditando = null;
 
+    const DOCS_OBRIGATORIOS = [
+      "doc-requerimento",
+      "doc-foto",
+      "doc-docoficial",
+      "doc-laudo",
+      "doc-cadunico",
+      "doc-comprovante",
+    ];
+
     function pessoaDocsOk(p) {
       const d = p.docs || {};
-      return !!(d.requerimento && d.foto && d.docOficial && d.laudo && d.cadUnico && d.comprovante);
+      return DOCS_OBRIGATORIOS.every(campo => !!d[campo]);
     }
 
     document.getElementById("p-salvar").addEventListener("click", () => {
       const nome = pNome.value.trim();
-      const cpfRaw  = pCpf.value.trim();
-      const cpfDigits = normalizeCPF(cpfRaw);
-      const cpf  = formatCPF(cpfDigits);
+      const cpf  = pCpf.value.trim();
       const tel  = pTel.value.trim();
       const desc = pDesc.value.trim();
       const eventosSelecionados = Array.from(pEvSel.selectedOptions).map(o=>o.value);
 
-      if (!nome || !cpfDigits) { showMsg(pMsg,"Nome e CPF são obrigatórios",true); return; }
+      if (!nome || !cpf) { showMsg(pMsg,"Nome e CPF são obrigatórios",true); return; }
 
       if (cpfEditando) {
-        const p = pessoas.find(x=>normalizeCPF(x.cpf)===cpfEditando);
+        const p = pessoas.find(x=>x.cpf===cpfEditando);
         if (p) {
           p.nome = nome;
           p.cpf  = cpf;
@@ -757,22 +783,14 @@
         cpfEditando = null;
         showMsg(pMsg,"Pessoa atualizada!");
       } else {
-        if (pessoas.some(x=>normalizeCPF(x.cpf)===cpfDigits)) {
+        if (pessoas.some(x=>x.cpf===cpf)) {
           showMsg(pMsg,"Já existe pessoa com esse CPF",true);
           return;
         }
         pessoas.push({
           nome, cpf, tel, desc,
           eventos: eventosSelecionados,
-          docs: {
-            requerimento:false,
-            foto:false,
-            docOficial:false,
-            laudo:false,
-            cadUnico:false,
-            bpc:false,
-            comprovante:false
-          }
+          docs: {}
         });
         showMsg(pMsg,"Pessoa cadastrada!");
       }
@@ -801,9 +819,8 @@
     function renderPessoas() {
       tabPessoas.innerHTML = "";
       const termo = (pBusca.value || "").toLowerCase();
-      const termoDigits = somenteNumeros(pBusca.value || "");
       const ord = [...pessoas].sort((a,b)=>a.nome.localeCompare(b.nome,"pt",{sensitivity:"base"}));
-      ord.filter(p => p.nome.toLowerCase().includes(termo) || normalizeCPF(p.cpf||"").includes(termoDigits))
+      ord.filter(p => p.nome.toLowerCase().includes(termo) || (p.cpf||"").includes(termo))
         .forEach(p => {
           const nomesEv = (p.eventos||[])
             .map(id => eventos.find(e=>e.id===id)?.nome || "")
@@ -823,7 +840,7 @@
             </td>
           `;
           tr.querySelector(".btn-edit-p").addEventListener("click", () => {
-            cpfEditando = normalizeCPF(p.cpf);
+            cpfEditando = p.cpf;
             pNome.value = p.nome;
             pCpf.value = p.cpf;
             pTel.value = p.tel || "";
@@ -844,44 +861,42 @@
         });
     }
 
-    // ===================== UPLOAD DE DOCUMENTOS (CORRIGIDO) =====================
+    // ===================== UPLOAD DE DOCUMENTOS (CLOUDINARY) =====================
     const btnEnviarDocs = document.getElementById("p-enviar-docs");
     const btnVerDocs    = document.getElementById("p-ver-docs");
 
     btnEnviarDocs.addEventListener("click", async () => {
       const nome = pNome.value.trim();
-      const cpfRaw  = pCpf.value.trim();
-      const cpf  = formatCPF(cpfRaw);
+      const cpf  = pCpf.value.trim();
       if (!nome || !cpf) {
         showMsg(pMsg,"Preencha Nome e CPF e salve a pessoa antes de enviar documentos.",true);
         return;
       }
-      let pessoa = pessoas.find(p=>normalizeCPF(p.cpf)===normalizeCPF(cpf));
+      let pessoa = pessoas.find(p=>p.cpf===cpf);
       if (!pessoa) {
         showMsg(pMsg,"Salve a pessoa primeiro (clique em Salvar).",true);
         return;
       }
 
       const campos = [
-        {id:"doc-requerimento", chave:"requerimento", obrigatorio:true},
-        {id:"doc-foto",         chave:"foto",         obrigatorio:true},
-        {id:"doc-docoficial",   chave:"docOficial",   obrigatorio:true},
-        {id:"doc-laudo",        chave:"laudo",        obrigatorio:true},
-        {id:"doc-cadunico",     chave:"cadUnico",     obrigatorio:true},
-        {id:"doc-bpc",          chave:"bpc",          obrigatorio:false},
-        {id:"doc-comprovante",  chave:"comprovante",  obrigatorio:true}
+        "doc-requerimento",
+        "doc-foto",
+        "doc-docoficial",
+        "doc-laudo",
+        "doc-cadunico",
+        "doc-bpc",
+        "doc-comprovante"
       ];
 
       const formData = new FormData();
       formData.append("nomePessoa", nome);
 
       let selecionouAlgum = false;
-      campos.forEach(c => {
-        const el = document.getElementById(c.id);
+      campos.forEach(campo => {
+        const el = document.getElementById(campo);
         if (el && el.files && el.files.length > 0) {
           selecionouAlgum = true;
-          // envia 1 arquivo por campo, com o NOME esperado pelo server.js
-          formData.append(c.id, el.files[0]);
+          formData.append(campo, el.files[0]);
         }
       });
 
@@ -890,6 +905,8 @@
         return;
       }
 
+      showMsg(pMsg,"Enviando documentos, aguarde...");
+
       try {
         const resp = await fetch(servidor + "/upload", {
           method: "POST",
@@ -897,66 +914,47 @@
         });
         const data = await resp.json();
         if (!resp.ok) {
-          throw new Error(data.message || "Falha no envio");
+          throw new Error(data.error || "Falha no envio");
         }
 
-        // Marca flags dos docs enviados
-        pessoa.docs = pessoa.docs || {};
-        campos.forEach(c => {
-          const el = document.getElementById(c.id);
-          if (el && el.files && el.files.length > 0) {
-            pessoa.docs[c.chave] = true;
-          }
-        });
+        pessoa.docs = {
+          ...(pessoa.docs || {}),
+          ...(data.arquivos || {})
+        };
 
         salvarTudo();
         atualizarInterface();
         showMsg(pMsg,"Documentos enviados com sucesso!");
-
       } catch (e) {
         console.error(e);
         showMsg(pMsg,"Erro ao enviar documentos para o servidor.",true);
       }
     });
 
-    btnVerDocs.addEventListener("click", async () => {
-      const nome = pNome.value.trim();
-      const cpfRaw  = pCpf.value.trim();
-      const cpf  = formatCPF(cpfRaw);
-      if (!nome || !cpf) {
-        showMsg(pMsg,"Informe Nome e CPF (de uma pessoa já salva) para visualizar.",true);
+    btnVerDocs.addEventListener("click", () => {
+      const cpf  = pCpf.value.trim();
+      const pessoa = pessoas.find(p => p.cpf === cpf);
+
+      if (!pessoa || !pessoa.docs) {
+        showMsg(pMsg, "Nenhum documento encontrado para esta pessoa.", true);
         return;
       }
-      try {
-        const resp = await fetch(servidor + "/visualizar/" + encodeURIComponent(nome));
-        if (!resp.ok) {
-          showMsg(pMsg,"Nenhum documento encontrado (pasta não existe).",true);
-          return;
-        }
-        const data = await resp.json();
-        const arquivos = data.arquivos || [];
 
-        const w = window.open("", "_blank");
-        w.document.write(`
-          <html><head><meta charset="utf-8"><title>Documentos - ${escapeHtml(nome)}</title></head>
-          <body style="font-family:Arial;padding:16px;">
-            <h2>Documentos de ${escapeHtml(nome)}</h2>
-            ${
-              arquivos.length === 0
-              ? "<p>Nenhum arquivo encontrado.</p>"
-              : "<ul>" + arquivos.map(a=>"<li>"+escapeHtml(a)+"</li>").join("") + "</ul>"
-            }
-            <p style="margin-top:20px;font-size:12px;color:#555;">
-              Obs.: a abertura direta dos arquivos depende da configuração do servidor para servir /documentos.
-            </p>
-          </body></html>
-        `);
-        w.document.close();
+      let html = `<h2>📂 Documentos de ${escapeHtml(pessoa.nome)}</h2>`;
 
-      } catch (e) {
-        console.error(e);
-        showMsg(pMsg,"Erro ao buscar documentos no servidor.",true);
+      for (const [campo, info] of Object.entries(pessoa.docs)) {
+        if (!info || !info.url) continue;
+        html += `
+          <p>
+            <strong>${escapeHtml(campo)}:</strong>
+            <a href="${info.url}" target="_blank">${info.url}</a>
+          </p>
+        `;
       }
+
+      const w = window.open("", "_blank");
+      w.document.write(`<html><head><meta charset="utf-8"><title>Documentos</title></head><body>${html}</body></html>`);
+      w.document.close();
     });
 
     // ===================== RELATÓRIOS / PDF / IMPRESSÃO =====================
@@ -1041,9 +1039,11 @@
       w.document.close();
     });
 
-    // ===================== BACKUP (MANUAL + AUTO EM LOCALSTORAGE) =====================
-    document.getElementById("r-backup").addEventListener("click", () => {
+    // ===================== BACKUP (LOCAL + CLOUDINARY) =====================
+    document.getElementById("r-backup").addEventListener("click", async () => {
       const backup = { eventos, pessoas, usuarios };
+
+      // 1) Backup local em arquivo .json
       const blob = new Blob([JSON.stringify(backup,null,2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1051,7 +1051,19 @@
       a.download = "backup-pcd.json";
       a.click();
       URL.revokeObjectURL(url);
-      alert("Backup exportado com sucesso!");
+
+      // 2) Backup online no Cloudinary
+      try {
+        await fetch(servidor + "/backup-json", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(backup),
+        });
+        alert("Backup exportado com sucesso!\nTambém foi salvo no Cloudinary.");
+      } catch (err) {
+        console.error("Erro ao enviar backup para o Cloudinary:", err);
+        alert("Backup local exportado.\n⚠️ Não foi possível salvar no Cloudinary.");
+      }
     });
 
     document.getElementById("r-restore").addEventListener("click", () => {
@@ -1092,24 +1104,7 @@
     setInterval(backupAutomatico, 60000);
     window.addEventListener("beforeunload", backupAutomatico);
 
-    
-    // ===================== CPF - MÁSCARA E FORMATAÇÃO =====================
-    const cpfInput = document.getElementById("p-cpf");
-    if (cpfInput) {
-      cpfInput.addEventListener("input", (e) => {
-        let v = somenteNumeros(e.target.value);
-        if (v.length > 11) v = v.slice(0,11);
-        if (v.length <= 3) e.target.value = v;
-        else if (v.length <= 6) e.target.value = `${v.slice(0,3)}.${v.slice(3)}`;
-        else if (v.length <= 9) e.target.value = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
-        else e.target.value = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
-      });
-      cpfInput.addEventListener("blur", (e) => {
-        e.target.value = formatCPF(e.target.value);
-      });
-    }
-
-// ===================== TELEFONE - MÁSCARA + AVISO =====================
+    // ===================== TELEFONE - MÁSCARA + AVISO =====================
     const telInput = document.getElementById("p-tel");
     const telMsg   = document.getElementById("tel-msg");
 
@@ -1270,21 +1265,6 @@
 
     // ===================== UTILIDADES =====================
 
-    // Utilidades de CPF
-    function somenteNumeros(s) {
-      return String(s || "").replace(/\D/g, "");
-    }
-
-    function formatCPF(raw) {
-      const d = somenteNumeros(raw).padStart(11, "0").slice(0,11);
-      if (d.length !== 11) return raw;
-      return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`;
-    }
-
-    function normalizeCPF(s) {
-      return somenteNumeros(s);
-    }
-
     function escapeHtml(str) {
       if (str === null || str === undefined) return "";
       return String(str)
@@ -1298,6 +1278,48 @@
     function sanitizeFilename(s) {
       return String(s||"").replace(/[^a-z0-9_\-\.]/gi,"_");
     }
+
+    // ===================== SINCRONIZAÇÃO AUTOMÁTICA CLOUDINARY =====================
+    async function carregarBackupCloudinary() {
+      try {
+        const res = await fetch(servidor + "/listar-backups");
+        if (!res.ok) {
+          console.warn("Não foi possível obter lista de backups do servidor.");
+          return;
+        }
+        const data = await res.json();
+        if (!data.url) {
+          console.warn("Nenhum backup disponível no Cloudinary.");
+          return;
+        }
+
+        console.log("🔽 Baixando backup mais recente:", data.url);
+        const backupRes = await fetch(data.url);
+        const backupJson = await backupRes.json();
+
+        if (!backupJson.eventos || !backupJson.pessoas || !backupJson.usuarios) {
+          console.warn("Backup baixado não contém estrutura válida.");
+          return;
+        }
+
+        // sobrescreve dados locais silenciosamente
+        eventos  = (backupJson.eventos||[]).map(e=>({ ...e, data:e.data||"" }));
+        pessoas  = backupJson.pessoas || [];
+        usuarios = backupJson.usuarios || [];
+
+        localStorage.setItem("eventos",  JSON.stringify(eventos));
+        localStorage.setItem("pessoas",  JSON.stringify(pessoas));
+        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+
+        console.log("✅ Dados restaurados automaticamente do Cloudinary.");
+        atualizarInterface();
+      } catch (err) {
+        console.error("❌ Erro ao carregar backup automático:", err);
+      }
+    }
+
+    // chama a sincronização alguns segundos após carregar a página
+    setTimeout(carregarBackupCloudinary, 3000);
 
     // ===================== INICIALIZAÇÃO =====================
     atualizarInterface();
