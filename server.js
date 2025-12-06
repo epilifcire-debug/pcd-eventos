@@ -1,5 +1,5 @@
 // ============================================================
-// 🌐 Sistema PCD Eventos - Backend com Upload Múltiplo Cloudinary
+// 🌐 Sistema PCD Eventos - Backend com Upload + Backup Cloudinary
 // ============================================================
 
 const express = require("express");
@@ -17,27 +17,27 @@ const app = express();
 // 🔧 CONFIGURAÇÕES BÁSICAS
 // ============================================================
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ============================================================
 // ☁️ CONFIGURAÇÃO DO CLOUDINARY
 // ============================================================
-// ⚠️ Certifique-se de definir as variáveis no painel do Render:
+// Certifique-se de ter no .env ou nas variáveis do Render:
 // CLOUD_NAME, CLOUD_KEY, CLOUD_SECRET
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,  // Exemplo: djln3mjwd
+  cloud_name: process.env.CLOUD_NAME,  // ex: djln3mjwd
   api_key: process.env.CLOUD_KEY,
   api_secret: process.env.CLOUD_SECRET,
 });
 
 // ============================================================
-// 📦 CONFIGURAÇÃO DO MULTER + CLOUDINARY STORAGE
+// 📦 CONFIGURAÇÃO DO MULTER + CLOUDINARY (DOCUMENTOS)
 // ============================================================
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "uploads_pcd_eventos", // pasta no Cloudinary
+    folder: "uploads_pcd_eventos/documentos",
     allowed_formats: ["jpg", "jpeg", "png", "pdf"],
     transformation: [{ width: 1200, crop: "limit" }],
   },
@@ -49,14 +49,16 @@ const upload = multer({ storage });
 // 🌍 ROTAS
 // ============================================================
 
-// 🔹 Rota de teste para verificar se o servidor está rodando
+// Rota de teste simples
 app.get("/", (req, res) => {
-  res.send("🚀 Servidor PCD Eventos ativo e pronto para receber uploads!");
+  res.send("🚀 Servidor PCD Eventos ativo com Cloudinary!");
 });
 
 // ============================================================
-// 📤 ROTA DE UPLOAD DE DOCUMENTOS
-// Aceita todos os campos do formulário de pessoa no index.html
+// 📤 UPLOAD DE DOCUMENTOS (PDF/IMAGENS)
+// Front usa campos:
+//  doc-requerimento, doc-foto, doc-docoficial, doc-laudo,
+//  doc-cadunico, doc-bpc, doc-comprovante
 // ============================================================
 app.post(
   "/upload",
@@ -75,19 +77,22 @@ app.post(
         return res.status(400).json({ error: "Nenhum arquivo enviado." });
       }
 
-      const urls = {};
+      const arquivos = {};
       for (const campo in req.files) {
-        urls[campo] = {
-          url: req.files[campo][0].path,
-          id: req.files[campo][0].filename,
+        const f = req.files[campo][0];
+        arquivos[campo] = {
+          url: f.path,         // URL pública no Cloudinary
+          id: f.filename,      // public_id
+          mimetype: f.mimetype,
+          size: f.size,
         };
       }
 
-      console.log("📁 Upload concluído com sucesso:", Object.keys(urls));
+      console.log("📁 Upload concluído:", Object.keys(arquivos));
 
       res.json({
         message: "Upload(s) realizado(s) com sucesso!",
-        arquivos: urls,
+        arquivos,
       });
     } catch (error) {
       console.error("❌ Erro no upload:", error);
@@ -97,17 +102,62 @@ app.post(
 );
 
 // ============================================================
-// 🗑️ ROTA OPCIONAL PARA EXCLUSÃO DE ARQUIVOS
+// 📦 BACKUP JSON NO CLOUDINARY
+// Sempre que o frontend chamar /backup-json, salvamos um arquivo
+// com eventos + pessoas + usuários em:
+// uploads_pcd_eventos/backups/backup-<timestamp>.json
 // ============================================================
-// Exemplo de uso: DELETE /delete?public_id=uploads_pcd_eventos/meuarquivo
+app.post("/backup-json", async (req, res) => {
+  try {
+    const { eventos, pessoas, usuarios } = req.body;
+
+    const backup = {
+      eventos: eventos || [],
+      pessoas: pessoas || [],
+      usuarios: usuarios || [],
+      ts: new Date().toISOString(),
+    };
+
+    const jsonStr = JSON.stringify(backup, null, 2);
+    const base64 = Buffer.from(jsonStr, "utf-8").toString("base64");
+
+    const result = await cloudinary.uploader.upload(
+      `data:application/json;base64,${base64}`,
+      {
+        resource_type: "raw",
+        folder: "uploads_pcd_eventos/backups",
+        format: "json",
+        public_id: `backup-${Date.now()}`,
+        overwrite: false,
+      }
+    );
+
+    console.log("💾 Backup JSON salvo no Cloudinary:", result.public_id);
+
+    res.json({
+      message: "Backup salvo no Cloudinary com sucesso.",
+      public_id: result.public_id,
+      url: result.secure_url,
+    });
+  } catch (error) {
+    console.error("❌ Erro ao salvar backup JSON:", error);
+    res.status(500).json({ error: "Erro ao salvar backup no Cloudinary." });
+  }
+});
+
+// ============================================================
+// 🗑️ ROTA OPCIONAL PARA REMOVER ARQUIVOS (DOCUMENTOS)
+// Exemplo: DELETE /delete?public_id=uploads_pcd_eventos/documentos/abc123
+// ============================================================
 app.delete("/delete", async (req, res) => {
   try {
     const { public_id } = req.query;
-    if (!public_id)
-      return res.status(400).json({ error: "Informe o parâmetro public_id" });
+    if (!public_id) {
+      return res.status(400).json({ error: "Informe o parâmetro public_id." });
+    }
 
-    await cloudinary.uploader.destroy(public_id);
-    res.json({ message: "Arquivo removido do Cloudinary com sucesso." });
+    await cloudinary.uploader.destroy(public_id, { resource_type: "raw" });
+    res.json({ message: "Arquivo removido do Cloudinary." });
   } catch (error) {
     console.error("❌ Erro ao deletar arquivo:", error);
     res.status(500).json({ error: "Erro ao remover arquivo." });
@@ -115,31 +165,7 @@ app.delete("/delete", async (req, res) => {
 });
 
 // ============================================================
-// 📄 ROTA OPCIONAL: LISTAGEM DE ARQUIVOS NA PASTA
-// ============================================================
-// Exemplo: GET /listar
-app.get("/listar", async (req, res) => {
-  try {
-    const resources = await cloudinary.api.resources({
-      type: "upload",
-      prefix: "uploads_pcd_eventos/",
-      max_results: 100,
-    });
-    res.json(resources.resources.map(r => ({
-      id: r.public_id,
-      url: r.secure_url,
-      formato: r.format,
-      tamanhoKB: Math.round(r.bytes / 1024),
-      criado: r.created_at
-    })));
-  } catch (error) {
-    console.error("❌ Erro ao listar arquivos:", error);
-    res.status(500).json({ error: "Erro ao listar arquivos." });
-  }
-});
-
-// ============================================================
-// 🧩 SERVIDOR ONLINE / LOCAL
+// 🚀 SUBIDA DO SERVIDOR
 // ============================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
