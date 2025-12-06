@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sistema PCD — Eventos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --text: #222;
+      --border: #dddddd;
+      --accent1: #8338ec;
+      --accent2: #ff006e;
+      --accent3: #ffbe0b;
+      --btn-text: #ffffff;
+      --shadow: rgba(0,0,0,0.08);
+    }
+
+    body.dark {
+      --bg: #222;
+      --card: #333;
+      --text: #f1f1f1;
+      --border: #555;
+      --shadow: rgba(0,0,0,0.55);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background .3s ease, color .3s ease;
+    }
+
+    header {
+      background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+      color: white;
+      text-align: center;
+      padding: 16px 8px 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .logos-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .logo {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      transition: transform .3s ease;
+    }
+    .logo:hover { transform: scale(1.05); }
+
+    header h1 { margin: 0; font-size: 22px; }
+
+    main {
+      max-width: 1100px;
+      margin: 20px auto 40px;
+      padding: 0 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      box-shadow: 0 4px 14px var(--shadow);
+      border: 1px solid var(--border);
+      transition: all .3s ease;
+    }
+
+    .hidden { display: none; }
+
+    .nav-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .nav-buttons button {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+      color: var(--btn-text);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: all .2s ease;
+    }
+    .nav-buttons button:hover {
+      transform: translateY(-1px);
+      opacity: .95;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    }
+    .nav-buttons button.active {
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.7);
+    }
+
+    .top-controls {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    button.primary {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+      color: var(--btn-text);
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      transition: all .2s ease;
+    }
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      opacity: .95;
+    }
+
+    button.ghost {
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      transition: all .2s ease;
+    }
+    button.ghost:hover { background: rgba(0,0,0,0.05); }
+
+    label { display: block; margin-top: 8px; font-size: 14px; font-weight: 600; }
+
+    input, textarea, select {
+      width: 100%;
+      margin-top: 4px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      background: transparent;
+      color: var(--text);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(220,220,220,0.6);
+      padding: 6px 4px;
+      text-align: left;
+    }
+
+    .status-bolinha {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-left: 6px;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    }
+    .status-ok { background: #1dd85f; box-shadow: 0 0 10px rgba(29,216,95,0.9); }
+    .status-pendente { background: #ff3b3b; box-shadow: 0 0 10px rgba(255,59,59,0.9); }
+
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logos-container">
+      <img src="Logo-do-Pre-Caju-1.png" class="logo" alt="Pré-Caju">
+      <img src="images.png" class="logo" alt="Point do Ingresso">
+    </div>
+    <h1>Sistema PCD — Eventos</h1>
+  </header>
+
+  <main>
+    <div id="top-controls" class="top-controls hidden">
+      <button id="btn-theme" class="ghost">🌙</button>
+      <button id="btn-admin" class="ghost">Admin</button>
+      <button id="btn-logout" class="ghost">Sair</button>
+    </div>
+
+    <!-- LOGIN -->
+    <section id="login-screen" class="card">
+      <h2 style="text-align:center;">Acesso ao Sistema</h2>
+      <label>Usuário</label>
+      <input id="login-user">
+      <label>Senha</label>
+      <input id="login-pass" type="password">
+      <div style="margin-top:12px; text-align:center;">
+        <button id="btn-login" class="primary">Entrar</button>
+      </div>
+      <div id="login-msg" class="msg hidden"></div>
+    </section>
+
+    <div id="app" class="hidden">
+      <section class="card">
+        <div class="nav-buttons">
+          <button data-target="card-eventos" class="active">Eventos</button>
+          <button data-target="card-pessoas">Pessoas</button>
+          <button data-target="card-relatorios">Relatórios</button>
+        </div>
+      </section>
+
+      <!-- EVENTOS -->
+      <section id="card-eventos" class="card">
+        <h2>Cadastro de Eventos</h2>
+        <label>Nome do Evento</label>
+        <input id="ev-nome">
+        <label>Data do Evento</label>
+        <input id="ev-data" type="date">
+        <label>Descrição</label>
+        <textarea id="ev-desc" rows="2"></textarea>
+        <div style="margin-top:10px;">
+          <button id="ev-salvar" class="primary">Salvar Evento</button>
+          <button id="ev-limpar" class="ghost">Limpar</button>
+        </div>
+        <div id="ev-msg" class="msg hidden"></div>
+        <h3>Eventos Cadastrados</h3>
+        <table><thead><tr><th>Data</th><th>Nome</th><th>Descrição</th><th>Ações</th></tr></thead>
+        <tbody id="tab-eventos"></tbody></table>
+      </section>
+
+      <!-- PESSOAS -->
+      <section id="card-pessoas" class="card hidden">
+        <h2>Cadastro de Pessoas</h2>
+        <label>Buscar</label>
+        <input id="p-busca" placeholder="Buscar por nome ou CPF">
+        <label>Nome</label><input id="p-nome">
+        <label>CPF</label><input id="p-cpf" maxlength="14">
+        <label>Telefone</label><input id="p-tel" placeholder="(79) 99999-9999">
+        <label>Descrição</label><textarea id="p-desc" rows="2"></textarea>
+
+        <label>Evento(s)</label>
+        <select id="p-eventos" multiple size="4"></select>
+
+        <h3 style="margin-top:14px;">📸 Documentos da Pessoa (opcionais)</h3>
+        <div class="docs-grid">
+          <label>Requerimento (opcional)<input type="file" id="doc-requerimento" accept=".pdf,image/*"></label>
+          <label>Foto (opcional)<input type="file" id="doc-foto" accept=".pdf,image/*"></label>
+          <label>Documento oficial (opcional)<input type="file" id="doc-docoficial" accept=".pdf,image/*"></label>
+          <label>Laudo médico (opcional)<input type="file" id="doc-laudo" accept=".pdf,image/*"></label>
+          <label>Cad Único (opcional)<input type="file" id="doc-cadunico" accept=".pdf,image/*"></label>
+          <label>Cartão BPC (opcional)<input type="file" id="doc-bpc" accept=".pdf,image/*"></label>
+          <label>Comprovante residência (opcional)<input type="file" id="doc-comprovante" accept=".pdf,image/*"></label>
+        </div>
+
+        <div style="margin-top:12px;">
+          <button id="p-salvar" class="primary">Salvar Pessoa</button>
+          <button id="p-limpar" class="ghost">Limpar</button>
+          <button id="p-enviar-docs" class="primary">📸 Enviar Documentos</button>
+        </div>
+        <div id="p-msg" class="msg hidden"></div>
+
+        <h3>Pessoas Cadastradas</h3>
+        <table>
+          <thead><tr><th>Nome</th><th>CPF</th><th>Evento(s)</th><th>Status</th></tr></thead>
+          <tbody id="tab-pessoas"></tbody>
+        </table>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section id="card-relatorios" class="card hidden">
+        <h2>Relatórios</h2>
+        <label>Evento</label>
+        <select id="r-evento"></select>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const servidor = window.location.hostname.includes("localhost")
+      ? "http://localhost:3000"
+      : "https://pcd-eventos.onrender.com";
+
+    let eventos = JSON.parse(localStorage.getItem("eventos")||"[]");
+    let pessoas = JSON.parse(localStorage.getItem("pessoas")||"[]");
+
+    const tabEventos = document.getElementById("tab-eventos");
+    const tabPessoas = document.getElementById("tab-pessoas");
+
+    function salvarTudo() {
+      localStorage.setItem("eventos", JSON.stringify(eventos));
+      localStorage.setItem("pessoas", JSON.stringify(pessoas));
+    }
+
+    // salvar evento
+    document.getElementById("ev-salvar").onclick = () => {
+      const nome = ev-nome.value.trim();
+      const data = ev-data.value;
+      const desc = ev-desc.value.trim();
+      if(!nome){alert("Informe nome");return;}
+      eventos.push({id:Date.now(),nome,data,desc});
+      salvarTudo(); renderEventos(); atualizarEventosSelect();
+    };
+
+    function renderEventos() {
+      tabEventos.innerHTML = "";
+      eventos.forEach(ev=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${ev.data?ev.data.split("-").reverse().join("/"):""}</td><td>${ev.nome}</td><td>${ev.desc}</td><td>—</td>`;
+        tabEventos.appendChild(tr);
+      });
+    }
+
+    function atualizarEventosSelect() {
+      const sel=document.getElementById("p-eventos");
+      const rel=document.getElementById("r-evento");
+      sel.innerHTML=""; rel.innerHTML="";
+      eventos.forEach(ev=>{
+        sel.innerHTML+=`<option value="${ev.id}">${ev.nome}</option>`;
+        rel.innerHTML+=`<option value="${ev.id}">${ev.nome}</option>`;
+      });
+    }
+
+    document.getElementById("p-salvar").onclick=()=>{
+      const nome=document.getElementById("p-nome").value.trim();
+      const cpf=document.getElementById("p-cpf").value.trim();
+      const tel=document.getElementById("p-tel").value.trim();
+      const eventosSel=Array.from(document.getElementById("p-eventos").selectedOptions).map(o=>o.value);
+      if(!nome||!cpf||!tel){alert("Preencha nome, CPF e telefone");return;}
+      const statusOk=(nome&&cpf&&tel&&eventosSel.length>0)?"ok":"pendente";
+      pessoas.push({id:Date.now(),nome,cpf,tel,eventos:eventosSel,status:statusOk});
+      salvarTudo(); renderPessoas();
+      alert("Pessoa salva!");
+    };
+
+    function renderPessoas(){
+      tabPessoas.innerHTML="";
+      pessoas.forEach(p=>{
+        const evs=p.eventos.map(id=>{
+          const e=eventos.find(x=>x.id==id);return e?e.nome:"";
+        }).join(", ");
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${p.nome}</td><td>${p.cpf}</td><td>${evs}</td>
+        <td><span class="status-bolinha ${p.status==="ok"?"status-ok":"status-pendente"}"></span></td>`;
+        tabPessoas.appendChild(tr);
+      });
+    }
+
+    renderEventos(); atualizarEventosSelect(); renderPessoas();
+  </script>
+</body>
+</html>
