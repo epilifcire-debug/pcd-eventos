@@ -1,33 +1,48 @@
+// ===============================
+//  SERVER.JS - CLOUDINARY ENABLED
+// ===============================
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
 const multer = require("multer");
 const cors = require("cors");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 app.use(express.static(path.join(__dirname, "public")));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const pessoa = req.body.nomePessoa?.trim() || "desconhecido";
-    const dir = path.join(__dirname, "documentos", pessoa);
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    cb(null, `${timestamp}-${file.fieldname}-${file.originalname}`);
+// ===============================
+// 🔹 CONFIGURAÇÃO DO CLOUDINARY
+// ===============================
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME || "SEU_CLOUD_NAME_AQUI",
+  api_key: process.env.CLOUD_API_KEY || "SUA_API_KEY_AQUI",
+  api_secret: process.env.CLOUD_API_SECRET || "SEU_API_SECRET_AQUI",
+});
+
+// ===============================
+// 🔹 CONFIGURAÇÃO DO STORAGE (multer + cloudinary)
+// ===============================
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const nomePessoa = req.body.nomePessoa || "sem_nome";
+    const pasta = `documentos/${nomePessoa.replace(/\s+/g, "_")}`;
+    return {
+      folder: pasta,
+      allowed_formats: ["jpg", "png", "jpeg", "pdf"],
+      public_id: `${Date.now()}-${file.fieldname}`,
+    };
   },
 });
 
 const upload = multer({ storage });
 
+// ===============================
+// 🔹 ROTAS DE UPLOAD
+// ===============================
 app.post(
   "/upload",
   upload.fields([
@@ -40,36 +55,60 @@ app.post(
     { name: "doc-comprovante", maxCount: 1 },
   ]),
   (req, res) => {
-    if (!req.files || Object.keys(req.files).length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Nenhum documento recebido." });
-    }
+    try {
+      const arquivos = [];
+      Object.keys(req.files).forEach((campo) => {
+        req.files[campo].forEach((arquivo) => {
+          arquivos.push({
+            campo,
+            url: arquivo.path,
+            formato: arquivo.format,
+            tamanhoKB: (arquivo.bytes / 1024).toFixed(2),
+          });
+        });
+      });
 
-    res.json({
-      success: true,
-      message: "📁 Documentos enviados com sucesso!",
-      arquivos: Object.keys(req.files).map((key) => ({
-        campo: key,
-        nome: req.files[key][0].originalname,
-      })),
-    });
+      res.json({
+        success: true,
+        message: "Arquivos enviados com sucesso para o Cloudinary!",
+        arquivos,
+      });
+    } catch (err) {
+      console.error("Erro no upload:", err);
+      res.status(500).json({ success: false, message: "Erro ao enviar arquivos.", error: err.message });
+    }
   }
 );
 
-app.get("/visualizar/:pessoa", (req, res) => {
-  const dir = path.join(__dirname, "documentos", req.params.pessoa);
-  if (!fs.existsSync(dir)) {
-    return res.status(404).json({ error: "Pasta não encontrada" });
+// ===============================
+// 🔹 VISUALIZAÇÃO DE DOCUMENTOS
+// ===============================
+app.get("/visualizar/:nomePessoa", async (req, res) => {
+  const nomePessoa = req.params.nomePessoa.replace(/\s+/g, "_");
+  try {
+    const result = await cloudinary.api.resources({
+      type: "upload",
+      prefix: `documentos/${nomePessoa}`,
+      max_results: 100,
+    });
+
+    const arquivos = result.resources.map((r) => r.secure_url);
+    res.json({ success: true, arquivos });
+  } catch (error) {
+    console.error("Erro ao listar documentos:", error);
+    res.status(500).json({ success: false, message: "Erro ao listar documentos." });
   }
-  const arquivos = fs.readdirSync(dir);
-  res.json({ pessoa: req.params.pessoa, arquivos });
 });
 
+// ===============================
+// 🔹 FRONTEND SERVE INDEX.HTML
+// ===============================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.listen(PORT, () =>
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
-);
+// ===============================
+// 🔹 PORTA DE EXECUÇÃO
+// ===============================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
