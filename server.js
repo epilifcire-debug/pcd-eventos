@@ -1,3 +1,6 @@
+// ============================================================
+// 🌐 SERVIDOR PCD EVENTOS + BACKUP CLOUDINARY
+// ============================================================
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -5,12 +8,13 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
 import streamifier from "streamifier";
+import fetch from "node-fetch";
 
 dotenv.config();
 const app = express();
 
 // ============================================================
-// 🌐 CORS — Permitir acesso do GitHub Pages e localhost
+// 🔓 CORS — Permitir acesso do GitHub Pages e localhost
 // ============================================================
 app.use(cors({
   origin: [
@@ -46,22 +50,19 @@ const storage = new CloudinaryStorage({
       folder: `uploads_pcd_eventos/${nomePessoa}`,
       resource_type: "auto",
       public_id: file.originalname.split(".")[0],
-      format: undefined,
     };
   },
 });
-
 const upload = multer({ storage });
 
 // ============================================================
-// 🔼 ROTA DE UPLOAD DE DOCUMENTOS
+// 🔼 UPLOAD DE DOCUMENTOS
 // ============================================================
 app.post("/upload", upload.any(), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "Nenhum arquivo recebido." });
     }
-
     const arquivos = {};
     req.files.forEach((file) => {
       arquivos[file.fieldname] = {
@@ -71,61 +72,59 @@ app.post("/upload", upload.any(), async (req, res) => {
         tamanho: file.size,
       };
     });
-
-    res.json({
-      message: "Upload concluído com sucesso!",
-      arquivos,
-    });
+    res.json({ message: "Upload concluído com sucesso!", arquivos });
   } catch (err) {
-    console.error("Erro no upload:", err);
+    console.error("❌ Erro no upload:", err);
     res.status(500).json({ error: "Erro ao enviar documentos." });
   }
 });
 
 // ============================================================
-// 💾 BACKUP JSON — ENVIA PARA CLOUDINARY
+// 💾 BACKUP JSON — SOBRESCREVE ARQUIVO ÚNICO
 // ============================================================
 app.post("/backup-json", async (req, res) => {
   try {
     const jsonData = JSON.stringify(req.body, null, 2);
-    const nomeArquivo = `backup-${Date.now()}.json`;
+    const nomeArquivo = "backup_ultimo.json";
 
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: "uploads_pcd_eventos/backups",
         resource_type: "raw",
         public_id: nomeArquivo.replace(".json", ""),
+        overwrite: true,
       },
       (error, result) => {
         if (error) {
-          console.error("Erro ao enviar backup:", error);
-          res.status(500).json({ error: "Falha ao enviar backup." });
-        } else {
-          res.json({
-            message: "Backup enviado com sucesso!",
-            url: result.secure_url,
-          });
+          console.error("❌ Erro ao enviar backup:", error);
+          return res.status(500).json({ error: "Falha ao enviar backup." });
         }
+        console.log("☁️ Backup atualizado:", result.secure_url);
+        res.json({
+          message: "Backup enviado com sucesso!",
+          url: result.secure_url,
+        });
       }
     );
 
-    streamifier.createReadStream(jsonData).pipe(uploadStream);
+    // ✅ Corrigido: cria stream a partir de Buffer
+    streamifier.createReadStream(Buffer.from(jsonData)).pipe(uploadStream);
   } catch (err) {
-    console.error("Erro ao processar backup:", err);
+    console.error("❌ Erro ao processar backup:", err);
     res.status(500).json({ error: "Erro ao processar backup JSON." });
   }
 });
 
 // ============================================================
-// 📋 LISTAR BACKUPS E PEGAR O MAIS RECENTE
+// 📋 LISTAR BACKUP MAIS RECENTE
 // ============================================================
 app.get("/listar-backups", async (req, res) => {
   try {
     const result = await cloudinary.api.resources({
-      type: "upload",           // ✅ Mantém compatível com backups públicos
+      type: "upload",
       resource_type: "raw",
-      prefix: "uploads_pcd_eventos/backups/",
-      max_results: 50,
+      prefix: "uploads_pcd_eventos/backups/backup_ultimo",
+      max_results: 1,
       direction: "desc",
     });
 
@@ -133,20 +132,21 @@ app.get("/listar-backups", async (req, res) => {
       return res.status(404).json({ error: "Nenhum backup encontrado." });
     }
 
-    // Pega o mais recente
-    const backups = result.resources.sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    );
-    const ultimo = backups[0];
+    const ultimo = result.resources[0];
+    console.log("🔍 Backup atual:", ultimo.secure_url);
+
+    const backupRes = await fetch(ultimo.secure_url);
+    const backupJson = await backupRes.json();
 
     res.json({
       message: "Backup mais recente encontrado",
       public_id: ultimo.public_id,
       created_at: ultimo.created_at,
       url: ultimo.secure_url,
+      data: backupJson,
     });
   } catch (err) {
-    console.error("Erro ao listar backups:", err);
+    console.error("❌ Erro ao listar backups:", err);
     res.status(500).json({ error: "Erro ao listar backups." });
   }
 });
@@ -159,10 +159,9 @@ app.get("/", (req, res) => {
 });
 
 // ============================================================
-// 🚀 INICIALIZAÇÃO DO SERVIDOR
+// 🚀 INICIALIZAÇÃO
 // ============================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
-
