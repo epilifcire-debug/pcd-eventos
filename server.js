@@ -8,7 +8,6 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
 import streamifier from "streamifier";
-import fetch from "node-fetch";
 
 dotenv.config();
 const app = express();
@@ -166,4 +165,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
 
