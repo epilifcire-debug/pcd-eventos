@@ -536,17 +536,28 @@
   ? "http://localhost:3000"
   : "https://pcd-eventos.onrender.com";
 
-    async function backupOnline() {
+    async function backupOnline(tentativa = 1) {
       try {
         const backup = { eventos, pessoas, usuarios };
-        await fetch(servidor + "/backup-json", {
+        const resp = await fetch(servidor + "/backup-json", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(backup),
         });
-        console.log("💾 Backup online enviado com sucesso");
+
+        if (!resp.ok) throw new Error("Erro HTTP: " + resp.status);
+
+        const data = await resp.json();
+        console.log("☁️ Backup online salvo:", data.url || "(sem URL)");
       } catch (err) {
-        console.error("Erro ao enviar backup online:", err);
+        console.warn(`⚠️ Falha ao enviar backup (tentativa ${tentativa}):`, err.message);
+
+        // 🔁 tenta novamente até 3 vezes, com 5s de intervalo
+        if (tentativa < 3) {
+        setTimeout(() => backupOnline(tentativa + 1), 5000);
+        } else {
+        console.error("❌ Não foi possível enviar o backup após 3 tentativas.");
+        }
       }
     }
 
