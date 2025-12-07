@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sistema PCD — Eventos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- 🔹 Ícone do site -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --text: #222;
+      --border: #dddddd;
+      --accent1: #8338ec;
+      --accent2: #ff006e;
+      --accent3: #ffbe0b;
+      --btn-text: #ffffff;
+      --shadow: rgba(0,0,0,0.08);
+    }
+    body.dark {
+      --bg: #222;
+      --card: #333;
+      --text: #f1f1f1;
+      --border: #555;
+      --shadow: rgba(0,0,0,0.55);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Inter", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    header {
+      background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+      color: white;
+      text-align: center;
+      padding: 16px 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .logos-container {
+      display: flex; justify-content: center; align-items: center;
+      gap: 40px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .logo { width: 180px; height: 180px; object-fit: contain; }
+    main { max-width: 1100px; margin: 20px auto; padding: 0 10px; }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      box-shadow: 0 4px 14px var(--shadow);
+      border: 1px solid var(--border);
+      transition: 0.3s;
+    }
+    .hidden { display: none; }
+    .nav-buttons {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px;
+    }
+    .nav-buttons button {
+      border: none; border-radius: 8px; padding: 8px 14px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+      color: white; cursor: pointer; font-weight: 500;
+    }
+    .nav-buttons button.active { box-shadow: 0 0 0 2px rgba(255,255,255,0.6); }
+    .top-controls { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    button.ghost, button.primary {
+      border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 14px;
+      transition: .15s;
+    }
+    button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.primary {
+      background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+      color: var(--btn-text); font-weight: 600;
+    }
+    #btn-theme { border-radius: 50%; width: 36px; height: 36px; font-size: 18px; }
+
+    input, textarea, select {
+      width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text); margin-top: 4px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { border-bottom: 1px solid rgba(200,200,200,0.5); padding: 6px 4px; }
+    body.dark th, body.dark td { border-bottom-color: #444; }
+    .msg { padding: 6px 10px; border-radius: 8px; font-size: 13px; margin-top: 6px; display: inline-block; }
+    .msg.ok { background: #e5ffe9; color: #0b7a29; }
+    .msg.err { background: #ffe5e5; color: #b01818; }
+    footer { text-align: center; font-size: 12px; color: #999; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logos-container">
+      <img src="Logo-do-Pre-Caju-1.png" class="logo" alt="">
+      <img src="images.png" class="logo" alt="">
+    </div>
+    <h1>Sistema PCD — Eventos</h1>
+  </header>
+
+  <main>
+    <div id="top-controls" class="top-controls hidden">
+      <button id="btn-theme" class="ghost">🌙</button>
+      <button id="btn-admin" class="ghost">Admin</button>
+      <button id="btn-logout" class="ghost">Sair</button>
+    </div>
+
+    <section id="login-screen" class="card">
+      <h2 style="text-align:center;">Acesso ao Sistema</h2>
+      <label>Usuário</label><input id="login-user">
+      <label>Senha</label><input id="login-pass" type="password">
+      <div style="margin-top:12px; display:flex; justify-content:center;">
+        <button id="btn-login" class="primary" style="min-width:120px;">Entrar</button>
+      </div>
+      <div id="login-msg" class="msg hidden"></div>
+    </section>
+
+    <div id="app" class="hidden">
+      <section class="card">
+        <div class="nav-buttons">
+          <button data-target="card-eventos" class="active">Eventos</button>
+          <button data-target="card-pessoas">Pessoas</button>
+          <button data-target="card-relatorios">Relatórios</button>
+        </div>
+      </section>
+
+      <section id="card-eventos" class="card">
+        <h2>Cadastro de Eventos</h2>
+        <label>Nome</label><input id="ev-nome">
+        <label>Data</label><input id="ev-data" type="date">
+        <label>Descrição</label><textarea id="ev-desc"></textarea>
+        <div style="margin-top:10px;">
+          <button id="ev-salvar" class="primary">Salvar</button>
+          <button id="ev-limpar" class="ghost">Limpar</button>
+        </div>
+        <div id="ev-msg" class="msg hidden"></div>
+        <table><thead><tr><th>Data</th><th>Nome</th><th>Descrição</th><th>Ações</th></tr></thead><tbody id="tab-eventos"></tbody></table>
+      </section>
+
+      <section id="card-pessoas" class="card hidden">
+        <h2>Cadastro de Pessoas</h2>
+        <label>Buscar</label><input id="p-busca">
+        <label>Nome</label><input id="p-nome">
+        <label>CPF</label><input id="p-cpf">
+        <label>Telefone</label><input id="p-tel">
+        <label>Descrição</label><textarea id="p-desc"></textarea>
+        <label>Evento(s)</label><select id="p-eventos" multiple size="4"></select>
+        <div style="margin-top:12px;">
+          <button id="p-salvar" class="primary">Salvar</button>
+          <button id="p-limpar" class="ghost">Limpar</button>
+        </div>
+        <div id="p-msg" class="msg hidden"></div>
+        <table><thead><tr><th>Nome</th><th>CPF</th><th>Evento(s)</th><th>Ações</th></tr></thead><tbody id="tab-pessoas"></tbody></table>
+      </section>
+
+      <section id="card-relatorios" class="card hidden">
+        <h2>Relatórios</h2>
+        <label>Evento</label><select id="r-evento"></select>
+        <div style="margin-top:10px;">
+          <button id="r-filtrar" class="ghost">Filtrar</button>
+          <button id="r-pdf" class="ghost">PDF</button>
+          <button id="r-print" class="ghost">Imprimir</button>
+        </div>
+        <div id="r-msg" class="msg hidden"></div>
+      </section>
+
+      <section id="card-admin" class="card hidden">
+        <h2>Administração</h2>
+        <label>Usuário</label><input id="a-user">
+        <label>Senha</label><input id="a-pass" type="password">
+        <label>Nome</label><input id="a-nome">
+        <label>Tipo</label>
+        <select id="a-role"><option value="admin">Administrador</option><option value="user">Padrão</option></select>
+        <div style="margin-top:10px;"><button id="a-salvar" class="primary">Salvar</button><button id="a-limpar" class="ghost">Limpar</button></div>
+        <h3 style="margin-top:14px;">Usuários</h3><div id="admin-users"></div>
+      </section>
+
+      <footer>Sistema PCD — Dados locais e backup automático no servidor</footer>
+    </div>
+  </main>
+
+  <script>
+  let eventos = JSON.parse(localStorage.getItem("eventos") || "[]");
+  let pessoas = JSON.parse(localStorage.getItem("pessoas") || "[]");
+  let usuarios = JSON.parse(localStorage.getItem("usuarios") || "[]");
+  let usuarioAtual = null;
+
+  const servidor = location.hostname.includes("localhost")
+    ? "http://localhost:3000"
+    : "https://pcd-eventos.onrender.com";
+
+  if (usuarios.length === 0) {
+    usuarios = [{ user:"admin", pass:"1234", nome:"Administrador", role:"admin" }];
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+  }
+
+  async function backupOnline(t = 1) {
+    try {
+      const backup = { eventos, pessoas, usuarios };
+      const r = await fetch(servidor + "/backup-json", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(backup)
+      });
+      if (!r.ok) throw new Error("Erro HTTP: "+r.status);
+      console.log("☁️ Backup online salvo");
+    } catch(e){
+      if (t<3) setTimeout(()=>backupOnline(t+1),5000);
+    }
+  }
+  function salvarTudo(){
+    localStorage.setItem("eventos",JSON.stringify(eventos));
+    localStorage.setItem("pessoas",JSON.stringify(pessoas));
+    localStorage.setItem("usuarios",JSON.stringify(usuarios));
+    backupOnline();
+  }
+  setInterval(()=>backupOnline(),50000);
+  window.addEventListener("beforeunload",()=>backupOnline());
+
+  const btnTheme=document.getElementById("btn-theme");
+  function aplicarTemaInicial(){
+    const tema=localStorage.getItem("tema")||"claro";
+    document.body.classList.toggle("dark",tema==="escuro");
+    btnTheme.textContent=tema==="escuro"?"☀️":"🌙";
+  }
+  aplicarTemaInicial();
+  btnTheme.onclick=()=>{
+    const escuro=!document.body.classList.contains("dark");
+    document.body.classList.toggle("dark",escuro);
+    localStorage.setItem("tema",escuro?"escuro":"claro");
+    btnTheme.textContent=escuro?"☀️":"🌙";
+  };
+
+  const loginScreen=document.getElementById("login-screen"),app=document.getElementById("app");
+  const loginUser=document.getElementById("login-user"),loginPass=document.getElementById("login-pass"),loginMsg=document.getElementById("login-msg");
+  const topControls=document.getElementById("top-controls"),btnAdmin=document.getElementById("btn-admin"),btnLogout=document.getElementById("btn-logout");
+
+  document.getElementById("btn-login").onclick=()=>{
+    const u=loginUser.value.trim(),p=loginPass.value.trim();
+    const user=usuarios.find(x=>x.user===u&&x.pass===p);
+    if(!user){showMsg(loginMsg,"Usuário ou senha inválidos",true);return;}
+    usuarioAtual=user;
+    loginScreen.classList.add("hidden");app.classList.remove("hidden");topControls.classList.remove("hidden");
+    atualizarInterface();
+  };
+  btnLogout.onclick=()=>{
+    if(!confirm("Deseja sair?"))return;
+    usuarioAtual=null;loginScreen.classList.remove("hidden");app.classList.add("hidden");topControls.classList.add("hidden");
+  };
+
+  function showMsg(el,txt,err=false){el.textContent=txt;el.className="msg "+(err?"err":"ok");el.classList.remove("hidden");setTimeout(()=>el.classList.add("hidden"),3000);}
+
+  const aUser=document.getElementById("a-user"),aPass=document.getElementById("a-pass"),aNome=document.getElementById("a-nome"),aRole=document.getElementById("a-role"),aSalvar=document.getElementById("a-salvar"),aLimpar=document.getElementById("a-limpar"),adminUsers=document.getElementById("admin-users");
+  aSalvar.onclick=()=>{
+    const user=aUser.value.trim(),pass=aPass.value.trim(),nome=aNome.value.trim(),role=aRole.value;
+    if(!user||!pass)return alert("Preencha usuário e senha");
+    const ex=usuarios.find(u=>u.user===user);
+    if(ex){ex.pass=pass;ex.nome=nome;ex.role=role;}else usuarios.push({user,pass,nome,role});
+    salvarTudo();renderUsuarios();alert("Usuário salvo!");
+  };
+  aLimpar.onclick=()=>{aUser.value=aPass.value=aNome.value="";aRole.value="user";};
+  function renderUsuarios(){
+    adminUsers.innerHTML="";
+    usuarios.forEach(u=>{
+      const d=document.createElement("div");
+      d.className="admin-user-item";
+      d.innerHTML=`<strong>${u.user}</strong> — ${u.nome||""} (${u.role})`;
+      adminUsers.appendChild(d);
+    });
+  }
+
+  async function carregarBackupCloudinary(){
+    try{
+      const res=await fetch(servidor+"/listar-backups");
+      if(!res.ok)return;
+      const data=await res.json();
+      if(!data.url)return;
+      const b=await fetch(data.url).then(r=>r.json());
+      if(!b.eventos)return;
+      eventos=b.eventos;pessoas=b.pessoas;usuarios=b.usuarios;
+      localStorage.setItem("eventos",JSON.stringify(eventos));
+      localStorage.setItem("pessoas",JSON.stringify(pessoas));
+      localStorage.setItem("usuarios",JSON.stringify(usuarios));
+      console.log("✅ Restaurado do Cloudinary");
+      atualizarInterface();
+    }catch(e){console.error("Erro sync Cloudinary",e);}
+  }
+  setTimeout(carregarBackupCloudinary,3000);
+  function atualizarInterface(){renderUsuarios();}
+  atualizarInterface();
+  </script>
+</body>
+</html>
