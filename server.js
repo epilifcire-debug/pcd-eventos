@@ -29,6 +29,14 @@ app.use(cors({
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// 🚫 Evita cache em todas as rotas (garante sempre o backup mais recente)
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 // ============================================================
 // ☁️ CONFIGURAÇÃO DO CLOUDINARY
 // ============================================================
@@ -137,7 +145,9 @@ app.get("/listar-backups", async (req, res) => {
 
     const backupRes = await fetch(ultimo.secure_url);
     const backupJson = await backupRes.json();
-
+ } catch (e) {
+  console.warn("⚠️ Não foi possível baixar o conteúdo do backup diretamente:", e.message); 
+}   
     res.json({
       message: "Backup mais recente encontrado",
       public_id: ultimo.public_id,
@@ -165,5 +175,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
 
 
