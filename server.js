@@ -102,7 +102,8 @@ app.post("/backup-json", async (req, res) => {
         console.log("☁️ Backup atualizado:", result.secure_url);
         res.json({
           message: "Backup enviado com sucesso!",
-          url: result.secure_url,
+          // força uma nova versão no link, impedindo cache
+          url: `${result.secure_url}?v=${Date.now()}`
         });
       }
     );
@@ -142,7 +143,7 @@ app.get("/listar-backups", async (req, res) => {
       message: "Backup mais recente encontrado",
       public_id: ultimo.public_id,
       created_at: ultimo.created_at,
-      url: ultimo.secure_url,
+      url: `${ultimo.secure_url}?v=${Date.now()}`,
       data: backupJson,
     });
   } catch (err) {
@@ -165,3 +166,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
