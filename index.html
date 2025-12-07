@@ -1062,63 +1062,6 @@
       w.document.write(html);
       w.document.close();
     });
-
-    // ===================== BACKUP (LOCAL + CLOUDINARY) =====================
-    document.getElementById("r-backup").addEventListener("click", async () => {
-      const backup = { eventos, pessoas, usuarios };
-
-      // 1) Backup local em arquivo .json
-      const blob = new Blob([JSON.stringify(backup,null,2)], {type:"application/json"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "backup-pcd.json";
-      a.click();
-      URL.revokeObjectURL(url);
-
-      // 2) Backup online no Cloudinary
-      try {
-        await fetch(servidor + "/backup-json", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(backup),
-        });
-        alert("Backup exportado com sucesso!\nTambém foi salvo no Cloudinary.");
-      } catch (err) {
-        console.error("Erro ao enviar backup para o Cloudinary:", err);
-        alert("Backup local exportado.\n⚠️ Não foi possível salvar no Cloudinary.");
-      }
-    });
-
-    document.getElementById("r-restore").addEventListener("click", () => {
-      document.getElementById("r-backup-file").click();
-    });
-
-    document.getElementById("r-backup-file").addEventListener("change", function() {
-      const file = this.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (!data.eventos || !data.pessoas || !data.usuarios) {
-            alert("Arquivo de backup inválido."); return;
-          }
-          if (!confirm("Importar backup irá sobrescrever os dados atuais. Continuar?")) return;
-          eventos  = (data.eventos||[]).map(e=>({ ...e, data:e.data||"" }));
-          pessoas  = data.pessoas || [];
-          usuarios = data.usuarios || [];
-          salvarTudo();
-          atualizarInterface();
-          alert("Backup importado com sucesso!");
-        } catch(err) {
-          console.error(err);
-          alert("Erro ao ler o arquivo de backup.");
-        }
-      };
-      reader.readAsText(file);
-    });
-
     // backup automático leve em localStorage (a cada 50s)
     function backupAutomatico() {
       localStorage.setItem("backupAuto", JSON.stringify({
