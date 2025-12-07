@@ -1,0 +1,32 @@
+{
+  "name": "pcd-eventos-backend",
+  "version": "1.0.0",
+  "description": "Servidor Node.js com Cloudinary para o sistema PCD Eventos (upload + backup + listagem automática)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "streamifier": "^0.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "cloudinary",
+    "multer",
+    "backup",
+    "pcd-eventos"
+  ],
+  "author": "Eric Filipe",
+  "license": "MIT"
+}
