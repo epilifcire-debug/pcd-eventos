@@ -1108,7 +1108,7 @@
       reader.readAsText(file);
     });
 
-    // backup automático leve em localStorage (a cada 30s)
+    // backup automático leve em localStorage (a cada 50s)
     function backupAutomatico() {
       localStorage.setItem("backupAuto", JSON.stringify({
       eventos, pessoas, usuarios, ts: Date.now()
@@ -1117,7 +1117,7 @@
       backupOnline();
       console.log("💾 Backup automático realizado:", new Date().toLocaleTimeString());
     }
-    setInterval(backupAutomatico, 30000); // ⏱️ agora a cada 30 segundos
+    setInterval(backupAutomatico, 50000); // ⏱️ agora a cada 50 segundos
     window.addEventListener("beforeunload", backupAutomatico);
 
     // ===================== TELEFONE - MÁSCARA + AVISO =====================
