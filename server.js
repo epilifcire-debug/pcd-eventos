@@ -15,10 +15,12 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://epilifcire-debug.github.io"
+    "https://epilifcire-debug.github.io",
+    "https://epilifcire-debug.github.io/pcd-eventos"
   ],
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"]
+  allowedHeaders: ["Content-Type"],
+  credentials: true
 }));
 
 app.use(express.json({ limit: "50mb" }));
@@ -163,3 +165,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
