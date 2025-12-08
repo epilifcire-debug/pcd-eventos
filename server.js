@@ -18,40 +18,45 @@ const app = express();
 // ============================================================
 const mongoUri = process.env.MONGODB_URI;
 
-mongoose.connect(mongoUri)
+mongoose
+  .connect(mongoUri)
   .then(() => console.log("🍃 MongoDB conectado com sucesso!"))
   .catch((err) => console.error("❌ Erro ao conectar no MongoDB:", err));
 
 // ============================================================
 // 🔓 CORS — Permitir acesso do GitHub Pages e localhost
 // ============================================================
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://epilifcire-debug.github.io",
-    "https://epilifcire-debug.github.io/pcd-eventos"
-  ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
-  credentials: true
-}));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://epilifcire-debug.github.io",
+  "https://epilifcire-debug.github.io/pcd-eventos",
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-// 🚫 Evita cache em todas as rotas (garante sempre o backup mais recente)
-app.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-  next();
-});
 
 // ============================================================
 // ☁️ CONFIGURAÇÃO DO CLOUDINARY
 // ============================================================
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME || "djln3mjwd",
+  cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_KEY,
   api_secret: process.env.CLOUD_SECRET,
 });
@@ -100,19 +105,14 @@ app.post("/upload", upload.any(), async (req, res) => {
 // ============================================================
 app.post("/backup-json", async (req, res) => {
   try {
-    // Sanitiza e protege os dados pessoais
     const sanitized = { ...req.body };
 
-    // Remove CPF do backup
+    // 🔒 Sanitização dos dados sensíveis
     if (sanitized.cpf) delete sanitized.cpf;
-
-    // Mascarar telefone, ex: ********1234
+    if (sanitized.senha) delete sanitized.senha;
     if (sanitized.telefone) {
       sanitized.telefone = sanitized.telefone.replace(/\d(?=\d{2})/g, "*");
     }
-
-    // Remover senha
-    if (sanitized.senha) delete sanitized.senha;
 
     const jsonData = JSON.stringify(sanitized, null, 2);
     const nomeArquivo = "backup_ultimo.json";
@@ -188,10 +188,10 @@ app.get("/listar-backups", async (req, res) => {
 });
 
 // ============================================================
-// 🔄 TESTE DO SERVIDOR
+// 🔄 TESTE DO SERVIDOR (HEALTH CHECK)
 // ============================================================
 app.get("/", (req, res) => {
-  res.send("✅ Servidor PCD Eventos rodando e conectado ao Cloudinary (modo protegido).");
+  res.send("✅ Servidor PCD Eventos ativo e conectado ao Cloudinary (modo protegido).");
 });
 
 // ============================================================
