@@ -1,5 +1,5 @@
 // ============================================================
-// 🌐 SERVIDOR PCD EVENTOS + BACKUP CLOUDINARY
+// 🌐 SERVIDOR PCD EVENTOS + BACKUP CLOUDINARY (PROTEGIDO)
 // ============================================================
 import express from "express";
 import cors from "cors";
@@ -8,9 +8,19 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
 import streamifier from "streamifier";
+import mongoose from "mongoose";
 
 dotenv.config();
 const app = express();
+
+// ============================================================
+// 🍃 CONEXÃO COM MONGODB ATLAS
+// ============================================================
+const mongoUri = process.env.MONGODB_URI;
+
+mongoose.connect(mongoUri)
+  .then(() => console.log("🍃 MongoDB conectado com sucesso!"))
+  .catch((err) => console.error("❌ Erro ao conectar no MongoDB:", err));
 
 // ============================================================
 // 🔓 CORS — Permitir acesso do GitHub Pages e localhost
@@ -51,14 +61,11 @@ cloudinary.config({
 // ============================================================
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => {
-    const nomePessoa = req.body.nomePessoa || "sem-nome";
-    return {
-      folder: `uploads_pcd_eventos/${nomePessoa}`,
-      resource_type: "auto",
-      public_id: file.originalname.split(".")[0],
-    };
-  },
+  params: async (req, file) => ({
+    folder: "uploads_pcd_eventos/arquivos",
+    resource_type: "auto",
+    public_id: file.originalname.split(".")[0],
+  }),
 });
 const upload = multer({ storage });
 
@@ -89,11 +96,25 @@ app.post("/upload", upload.any(), async (req, res) => {
 });
 
 // ============================================================
-// 💾 BACKUP JSON — SOBRESCREVE ARQUIVO ÚNICO
+// 💾 BACKUP JSON — SOBRESCREVE ARQUIVO ÚNICO (DADOS SANITIZADOS)
 // ============================================================
 app.post("/backup-json", async (req, res) => {
   try {
-    const jsonData = JSON.stringify(req.body, null, 2);
+    // Sanitiza e protege os dados pessoais
+    const sanitized = { ...req.body };
+
+    // Remove CPF do backup
+    if (sanitized.cpf) delete sanitized.cpf;
+
+    // Mascarar telefone, ex: ********1234
+    if (sanitized.telefone) {
+      sanitized.telefone = sanitized.telefone.replace(/\d(?=\d{2})/g, "*");
+    }
+
+    // Remover senha
+    if (sanitized.senha) delete sanitized.senha;
+
+    const jsonData = JSON.stringify(sanitized, null, 2);
     const nomeArquivo = "backup_ultimo.json";
 
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -102,6 +123,7 @@ app.post("/backup-json", async (req, res) => {
         resource_type: "raw",
         public_id: nomeArquivo.replace(".json", ""),
         overwrite: true,
+        type: "authenticated", // 🔒 Backup não público
       },
       (error, result) => {
         if (error) {
@@ -112,13 +134,11 @@ app.post("/backup-json", async (req, res) => {
         console.log("☁️ Backup atualizado:", result.secure_url);
         res.json({
           message: "Backup enviado com sucesso!",
-          // força uma nova versão no link, impedindo cache
-          url: `${result.secure_url}?v=${Date.now()}`
+          url: `${result.secure_url}?v=${Date.now()}`,
         });
       }
     );
 
-    // ✅ Cria stream a partir de Buffer
     streamifier.createReadStream(Buffer.from(jsonData)).pipe(uploadStream);
   } catch (err) {
     console.error("❌ Erro ao processar backup:", err);
@@ -127,7 +147,7 @@ app.post("/backup-json", async (req, res) => {
 });
 
 // ============================================================
-// 📋 LISTAR BACKUP MAIS RECENTE (CORRIGIDO)
+// 📋 LISTAR BACKUP MAIS RECENTE
 // ============================================================
 app.get("/listar-backups", async (req, res) => {
   try {
@@ -151,7 +171,7 @@ app.get("/listar-backups", async (req, res) => {
       const backupRes = await fetch(ultimo.secure_url);
       backupJson = await backupRes.json();
     } catch (e) {
-      console.warn("⚠️ Não foi possível baixar o conteúdo do backup diretamente:", e.message);
+      console.warn("⚠️ Não foi possível baixar o conteúdo do backup:", e.message);
     }
 
     res.json({
@@ -171,7 +191,7 @@ app.get("/listar-backups", async (req, res) => {
 // 🔄 TESTE DO SERVIDOR
 // ============================================================
 app.get("/", (req, res) => {
-  res.send("✅ Servidor PCD Eventos rodando e conectado ao Cloudinary.");
+  res.send("✅ Servidor PCD Eventos rodando e conectado ao Cloudinary (modo protegido).");
 });
 
 // ============================================================
