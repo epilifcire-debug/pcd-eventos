@@ -70,6 +70,7 @@ app.post("/upload", upload.any(), async (req, res) => {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "Nenhum arquivo recebido." });
     }
+
     const arquivos = {};
     req.files.forEach((file) => {
       arquivos[file.fieldname] = {
@@ -79,6 +80,7 @@ app.post("/upload", upload.any(), async (req, res) => {
         tamanho: file.size,
       };
     });
+
     res.json({ message: "Upload concluído com sucesso!", arquivos });
   } catch (err) {
     console.error("❌ Erro no upload:", err);
@@ -106,6 +108,7 @@ app.post("/backup-json", async (req, res) => {
           console.error("❌ Erro ao enviar backup:", error);
           return res.status(500).json({ error: "Falha ao enviar backup." });
         }
+
         console.log("☁️ Backup atualizado:", result.secure_url);
         res.json({
           message: "Backup enviado com sucesso!",
@@ -115,7 +118,7 @@ app.post("/backup-json", async (req, res) => {
       }
     );
 
-    // ✅ Corrigido: cria stream a partir de Buffer
+    // ✅ Cria stream a partir de Buffer
     streamifier.createReadStream(Buffer.from(jsonData)).pipe(uploadStream);
   } catch (err) {
     console.error("❌ Erro ao processar backup:", err);
@@ -124,7 +127,7 @@ app.post("/backup-json", async (req, res) => {
 });
 
 // ============================================================
-// 📋 LISTAR BACKUP MAIS RECENTE
+// 📋 LISTAR BACKUP MAIS RECENTE (CORRIGIDO)
 // ============================================================
 app.get("/listar-backups", async (req, res) => {
   try {
@@ -143,11 +146,14 @@ app.get("/listar-backups", async (req, res) => {
     const ultimo = result.resources[0];
     console.log("🔍 Backup atual:", ultimo.secure_url);
 
-    const backupRes = await fetch(ultimo.secure_url);
-    const backupJson = await backupRes.json();
- } catch (e) {
-  console.warn("⚠️ Não foi possível baixar o conteúdo do backup diretamente:", e.message); 
-}   
+    let backupJson = null;
+    try {
+      const backupRes = await fetch(ultimo.secure_url);
+      backupJson = await backupRes.json();
+    } catch (e) {
+      console.warn("⚠️ Não foi possível baixar o conteúdo do backup diretamente:", e.message);
+    }
+
     res.json({
       message: "Backup mais recente encontrado",
       public_id: ultimo.public_id,
@@ -175,6 +181,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
-
-
-
