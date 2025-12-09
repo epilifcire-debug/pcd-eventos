@@ -534,7 +534,7 @@
       localStorage.setItem("usuarios", JSON.stringify(usuarios));
     }
 
-    // 🔹 BACKEND (ainda usado só pros backups on-line, se você quiser manter)
+    // 🔹 BACKEND (opcional pra backups online)
     const servidor = window.location.hostname.includes("localhost")
       ? "http://localhost:3000"
       : "https://pcd-eventos.onrender.com";
@@ -1075,7 +1075,7 @@
       a.click();
       URL.revokeObjectURL(url);
 
-      // 2) Backup online no Cloudinary (se o backend estiver ativo)
+      // 2) Backup online no Cloudinary (opcional)
       try {
         await fetch(servidor + "/backup-json", {
           method: "POST",
@@ -1166,6 +1166,25 @@
         telMsg.textContent = "";
         telMsg.style.display = "none";
       }
+    }
+
+    // ===================== CPF - MÁSCARA AUTOMÁTICA =====================
+    const cpfInput = document.getElementById("p-cpf");
+    if (cpfInput) {
+      cpfInput.addEventListener("input", (e) => {
+        let v = e.target.value.replace(/\D/g, ""); // só números
+        if (v.length > 11) v = v.slice(0, 11);
+
+        if (v.length > 9) {
+          v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
+        } else if (v.length > 6) {
+          v = v.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, "$1.$2.$3");
+        } else if (v.length > 3) {
+          v = v.replace(/^(\d{3})(\d{0,3}).*/, "$1.$2");
+        }
+
+        e.target.value = v;
+      });
     }
 
     // ===================== ADMIN - GERENCIAMENTO DE USUÁRIOS =====================
